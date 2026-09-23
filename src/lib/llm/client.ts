@@ -191,7 +191,9 @@ export async function completeStream(
   }
 
   // ---- записанный режим ----
-  const turn = mockTurn(messages);
+  // await — чтобы mockTurn мог стать async (проверка артикула по базе).
+  // С синхронной функцией тоже работает.
+  const turn = await mockTurn(messages);
   if (turn.content) {
     for (const piece of turn.content.match(/.{1,18}/gs) ?? []) {
       await sleep(16);
