@@ -1,4 +1,5 @@
 import { runAgent, type AgentEvent } from "@/lib/agent/loop";
+import { allow, clientIp, LIMITS } from "@/lib/ratelimit";
 import type { Msg } from "@/lib/llm/types";
 
 export const runtime = "nodejs";
@@ -37,6 +38,16 @@ export async function POST(req: Request) {
   const message = (body.message || "").trim();
   if (!sessionId) return Response.json({ error: "нужен sessionId" }, { status: 400 });
   if (!message) return Response.json({ error: "пустое сообщение" }, { status: 400 });
+  if (message.length > LIMITS.maxMessageChars) {
+    return Response.json({ error: `Сообщение слишком длинное: до ${LIMITS.maxMessageChars} символов.` }, { status: 413 });
+  }
+  const gate = allow(`chat:${clientIp(req)}`, LIMITS.chatPerMinute, 60_000);
+  if (!gate.ok) {
+    return Response.json(
+      { error: `Слишком много сообщений подряд. Попробуйте через ${gate.retryAfterSec} с.` },
+      { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
+    );
+  }
 
   // Историю храним на клиенте, но обрезаем: длинный хвост диалога —
   // самый дешёвый способ упереться в лимит токенов посреди демо.

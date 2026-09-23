@@ -221,6 +221,27 @@ ${B}5б. Сопутствующие товары${X}`);
     }
   }
 
+  // ---- 5в. Платёжные и персональные данные --------------------------------
+  console.log(`
+${B}5в. Приватность: платёжные данные не хранятся${X}`);
+  {
+    const R = await import("../src/lib/redact");
+    const card = "4111 1111 1111 1111";
+    check("номер карты вырезается", !R.redactPayment(`моя карта ${card}`).includes("4111"));
+    check("карта без пробелов тоже", !R.redactPayment("4111111111111111 оплачу").includes("4111"));
+    check("CVV вырезается", !R.redactPayment("cvv 123").includes("123"));
+    check("IBAN вырезается", !R.redactPayment("счёт KZ86125KZT5004100100").includes("5004100100"));
+    // Главный риск маскирования — испортить артикул и сломать поиск.
+    const skus = (await DB.searchCatalog("", undefined, 300)).map((p) => p.sku);
+    const broken = skus.filter((k) => R.redactPayment(`добавь ${k}`) !== `добавь ${k}`);
+    check("ни один артикул каталога не маскируется", broken.length === 0, broken.slice(0, 3).join(", "));
+    check("количество и цена не маскируются", R.redactPayment("2 штуки по 4 590 ₸") === "2 штуки по 4 590 ₸");
+    check("в журнал не попадают телефон и email",
+      !/7012345678|test@mail/.test(R.redactForLog("звоните +7 701 234 56 78, test@mail.kz")));
+    check("телефон модели остаётся — он нужен менеджеру",
+      R.redactPayment("+7 701 234 56 78").includes("701"));
+  }
+
   // ---- 5а. Язык ответа определяет сервер -----------------------------------
   console.log(`
 ${B}5а. Язык ответа${X}`);

@@ -5,6 +5,7 @@ import { bridgeTokens } from "./bridge";
 import type { Msg } from "../llm/types";
 import { log, newTraceId } from "../logger";
 import { SYSTEM_PROMPT } from "./prompts";
+import { hasPaymentData, redactPayment } from "../redact";
 import { executeTool, TOOL_SPECS } from "./tools";
 
 /**
@@ -57,6 +58,8 @@ export function detectLang(message: string, history: Msg[]): "kk" | "ru" {
   return "ru";
 }
 
+const PAYMENT_TURN = "Клиент вставил в сообщение платёжные данные — сервер их вырезал, ты видишь метку вместо них. Коротко скажи клиенту, что в чате платёжные данные не нужны и не сохраняются, оплата проходит на сайте или по счёту. Сами данные не упоминай и не проси повторить.";
+
 const KAZAKH_TURN = "Клиент пишет по-казахски. Весь ответ на этот ход пиши на казахском языке. Названия товаров, артикулы, характеристики и ссылки оставляй как в инструментах, не переводи.";
 
 // Корзину меняет ровно один инструмент — это и есть инвариант раздела 6.
@@ -68,9 +71,13 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
   // Сырую реплику клиента и границу хода фиксирует сервер. Инструмент
   // confirm_add опирается на них, а не на то, что скажет модель.
   const turnStartedAt = new Date().toISOString();
+  // Платёжные данные вырезаются до всего остального: реплика в таком виде
+  // уходит в модель, в журнал и обратно клиенту в историю диалога.
+  const paymentPasted = hasPaymentData(input.message);
+  const message = redactPayment(input.message);
   const ctx = {
     sessionId: input.sessionId,
-    lastUserMessage: input.message,
+    lastUserMessage: message,
     turnStartedAt,
     origin: input.origin,
   };
@@ -78,10 +85,11 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
   const messages: Msg[] = [
     { role: "system", content: SYSTEM_PROMPT },
     ...input.history,
-    ...(detectLang(input.message, input.history) === "kk"
+    ...(detectLang(message, input.history) === "kk"
       ? [{ role: "system", content: KAZAKH_TURN } as Msg]
       : []),
-    { role: "user", content: input.message },
+    ...(paymentPasted ? [{ role: "system", content: PAYMENT_TURN } as Msg] : []),
+    { role: "user", content: message },
   ];
 
   // Всё, что дописано за этот ход: реплика пользователя, вызовы инструментов
@@ -94,7 +102,7 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
   let source: "live" | "mock" = "mock";
   let model = "—";
 
-  log({ kind: "agent", event: "start", traceId, detail: { sessionId: input.sessionId, message: input.message } });
+  log({ kind: "agent", event: "start", traceId, detail: { sessionId: input.sessionId, message, paymentPasted } });
 
   try {
     while (steps < CONFIG.agent.maxSteps) {

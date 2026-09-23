@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createProposal, matchSpecRows } from "@/lib/db";
 import { describeExtract, extractFromImage } from "@/lib/llm/vision";
 import { parseSpecFile } from "@/lib/spec-parse";
+import { allow, clientIp, LIMITS } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ function jsonError(error: string, status: number) {
 }
 
 export async function POST(req: Request) {
+  const gate = allow(`upload:${clientIp(req)}`, LIMITS.uploadPerMinute, 60_000);
+  if (!gate.ok) return jsonError(`Слишком много файлов подряд. Попробуйте через ${gate.retryAfterSec} с.`, 429);
+
   let form: FormData;
   try {
     form = await req.formData();

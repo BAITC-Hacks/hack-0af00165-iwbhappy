@@ -1,3 +1,5 @@
+import { redactForLog } from "./redact";
+
 /**
  * Лог вызовов модели и инструментов. Пишется в stdout (виден в `vercel logs`)
  * и в кольцевой буфер в памяти, который отдаётся на /api/state — удобно
@@ -16,8 +18,20 @@ export type LogEntry = {
 const RING_SIZE = 200;
 const ring: LogEntry[] = [];
 
+/** Все строки в detail проходят маскирование: журнал — это тоже хранение. */
+function scrub(v: unknown): unknown {
+  if (typeof v === "string") return redactForLog(v);
+  if (Array.isArray(v)) return v.map(scrub);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrub(x)]));
+  return v;
+}
+
 export function log(entry: Omit<LogEntry, "ts">): void {
-  const full: LogEntry = { ts: new Date().toISOString(), ...entry };
+  const full: LogEntry = {
+    ts: new Date().toISOString(),
+    ...entry,
+    detail: entry.detail ? (scrub(entry.detail) as Record<string, unknown>) : undefined,
+  };
   ring.push(full);
   if (ring.length > RING_SIZE) ring.shift();
 
