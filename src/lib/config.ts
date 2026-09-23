@@ -35,8 +35,10 @@ export const CONFIG = {
   },
 
   db: {
-    url: process.env.DB_URL || "file:./.data/hack.db",
-    authToken: process.env.DB_AUTH_TOKEN || undefined,
+    // TURSO_* создаёт интеграция Turso в маркетплейсе Vercel сама —
+    // подключил базу к проекту, и переменные уже на месте.
+    url: process.env.DB_URL || process.env.TURSO_DATABASE_URL || "file:./.data/hack.db",
+    authToken: process.env.DB_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || undefined,
   },
 
   demo: {

@@ -75,6 +75,23 @@ const CONDITIONAL = new Set([
 ]);
 
 /** Консервативно: сомнительное трактуем как отказ. */
+const normArticle = (s: string) => s.toUpperCase().replace(/[^0-9A-ZА-ЯЁӘҒҚҢӨҰҮҺІ]/g, "");
+
+/**
+ * Артикулы, которые клиент назвал в реплике и которых нет в предложении.
+ * Артикулом считаем токен от 5 символов с цифрой: «R9F12110», «027004»,
+ * «60/40.1.1». Количество («2», «10») и номинал («16А») сюда не попадают.
+ */
+export function foreignArticles(raw: string, proposalSkus: string[]): string[] {
+  const own = proposalSkus.map(normArticle).filter(Boolean);
+  const tokens = (raw || "").match(/[0-9A-Za-zА-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі][0-9A-Za-zА-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі./_-]*/g) ?? [];
+  return tokens.filter((t) => {
+    if (t.length < 5 || !/[0-9]/.test(t)) return false;
+    const n = normArticle(t);
+    return !own.some((sku) => sku === n || sku.includes(n) || n.includes(sku));
+  });
+}
+
 export function isAffirmative(raw: string): boolean {
   const text = (raw || "").toLowerCase().trim();
   if (!text) return false;
@@ -342,6 +359,20 @@ async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Pro
       ok: false,
       data: { error: "клиент не подтвердил добавление явно. Переспроси и дождись однозначного ответа." },
       summary: "отказ: явного согласия не было",
+    };
+  }
+
+  // Защита 3: «добавь X» — согласие на X, а не на висящее предложение про Y.
+  // Найдено на демо: клиент попросил другой товар, а модель попыталась
+  // подтвердить старое предложение — матчер согласия видит «добавь» и пропускает.
+  const foreign = foreignArticles(ctx.lastUserMessage, proposal.items.map((i) => i.sku));
+  if (foreign.length) {
+    return {
+      ok: false,
+      data: {
+        error: `клиент назвал другой товар (${foreign.join(", ")}), а не тот, что в предложении. Это новая просьба: сделай новое предложение через propose_add.`,
+      },
+      summary: "отказ: согласие относится к другому товару",
     };
   }
 

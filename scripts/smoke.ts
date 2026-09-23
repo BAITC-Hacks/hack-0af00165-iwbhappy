@@ -151,6 +151,18 @@ async function main() {
   check("корзина всё ещё пуста", (await DB.getCart(SESSION)).count === 0);
 
   // 4c. Следующий ход и явное «да» — добавляется.
+  // «Добавь другой товар» — не согласие на висящее предложение. Случай с демо:
+  // модель попыталась подтвердить старое предложение на просьбу о новом товаре.
+  const otherSku = outOfStock && outOfStock !== inStock ? outOfStock : "УПп 60/40.1.1";
+  const cartBefore = (await DB.getCart(SESSION)).count;
+  const wrongItem = await call("confirm_add", { proposalId }, ctx(`добавь ${otherSku}`, turnB));
+  check("«добавь другой артикул» не подтверждает старое предложение", !wrongItem.ok, String(wrongItem.summary));
+  check("корзина не изменилась от чужого согласия", (await DB.getCart(SESSION)).count === cartBefore);
+  check("артикул из самого предложения согласию не мешает",
+    T.foreignArticles(`да, добавь ${inStock}`, [inStock]).length === 0);
+  check("количество и номинал за артикул не считаются",
+    T.foreignArticles("да, 2 штуки, тот что на 16А", [inStock]).length === 0);
+
   const turnC = laterThan(turnA, 2000);
   const confirmed = await call("confirm_add", { proposalId }, ctx("да, добавь", turnC));
   check("confirm_add с явным согласием прошёл", confirmed.ok, String(confirmed.summary));
