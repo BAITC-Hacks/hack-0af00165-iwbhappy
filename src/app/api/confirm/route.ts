@@ -36,13 +36,17 @@ export async function POST(req: Request) {
 
   log({
     kind: "tool", event: "confirm_button.ok", traceId,
-    detail: { sessionId, proposalId, added: res.added, capped: res.capped },
+    detail: { sessionId, proposalId, addedTotal: res.addedTotal, lines: res.lines.length },
   });
 
+  const first = res.lines[0];
   return Response.json({
     cart: res.cart,
-    added: res.added,
-    capped: res.capped,
-    availableQty: res.availableQty,
+    lines: res.lines,
+    addedTotal: res.addedTotal,
+    // Одиночное добавление оставляем в прежней форме: интерфейс уже умеет её показывать.
+    added: first ? { sku: first.sku, name: first.name, qty: first.added } : null,
+    capped: res.lines.some((l) => l.capped),
+    availableQty: first?.available ?? 0,
   });
 }

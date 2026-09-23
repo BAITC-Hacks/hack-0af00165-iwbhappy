@@ -34,11 +34,13 @@ export type Product = {
 export type CartLine = { sku: string; name: string; price: number; qty: number; lineTotal: number };
 export type Cart = { lines: CartLine[]; total: number; count: number };
 
+export type ProposalItem = { sku: string; qty: number };
+
 export type Proposal = {
   id: string;
   sessionId: string;
-  sku: string;
-  qty: number;
+  /** Одна позиция для обычного добавления, несколько — для спецификации. */
+  items: ProposalItem[];
   status: "pending" | "used" | "cancelled";
   createdAt: string;
 };
@@ -66,7 +68,7 @@ function db(): Client {
   return client;
 }
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS products (
@@ -104,8 +106,9 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE TABLE IF NOT EXISTS proposals (
   id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
-  sku TEXT NOT NULL,
-  qty INTEGER NOT NULL,
+  -- JSON-массив позиций. Одна запись и для обычного добавления, и для
+  -- спецификации: путь подтверждения должен остаться единственным.
+  items TEXT NOT NULL,
   status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
@@ -514,15 +517,20 @@ export async function getCart(sessionId: string): Promise<Cart> {
 // Предложения — инвариант раздела 6
 // --------------------------------------------------------------------------
 
-export async function createProposal(sessionId: string, sku: string, qty: number): Promise<Proposal> {
+export async function createProposal(sessionId: string, items: ProposalItem[]): Promise<Proposal> {
   await ensureDb();
+  const clean = items
+    .map((i) => ({ sku: String(i.sku).trim(), qty: Math.max(1, Math.trunc(Number(i.qty) || 1)) }))
+    .filter((i) => i.sku);
+  if (clean.length === 0) throw new Error("EMPTY_PROPOSAL");
+
   const id = `prp_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
   const createdAt = new Date().toISOString();
   await db().execute({
-    sql: "INSERT INTO proposals (id, session_id, sku, qty, status, created_at) VALUES (?,?,?,?,'pending',?)",
-    args: [id, sessionId, sku, qty, createdAt],
+    sql: "INSERT INTO proposals (id, session_id, items, status, created_at) VALUES (?,?,?,'pending',?)",
+    args: [id, sessionId, JSON.stringify(clean), createdAt],
   });
-  return { id, sessionId, sku, qty, status: "pending", createdAt };
+  return { id, sessionId, items: clean, status: "pending", createdAt };
 }
 
 export async function getProposal(sessionId: string, id: string): Promise<Proposal | null> {
@@ -534,22 +542,38 @@ export async function getProposal(sessionId: string, id: string): Promise<Propos
   const r = res.rows[0];
   if (!r) return null;
   return {
-    id: String(r.id), sessionId: String(r.session_id), sku: String(r.sku),
-    qty: Number(r.qty), status: String(r.status) as Proposal["status"], createdAt: String(r.created_at),
+    id: String(r.id),
+    sessionId: String(r.session_id),
+    items: JSON.parse(String(r.items || "[]")),
+    status: String(r.status) as Proposal["status"],
+    createdAt: String(r.created_at),
   };
 }
 
+export type ConsumedLine = {
+  sku: string;
+  name: string;
+  requested: number;
+  added: number;
+  capped: boolean;
+  available: number;
+  error?: "PRODUCT_GONE" | "NO_STOCK";
+};
+
 export type ConsumeResult =
-  | { ok: true; cart: Cart; added: { sku: string; name: string; qty: number }; capped: boolean; availableQty: number }
-  | { ok: false; error: "NOT_FOUND" | "ALREADY_USED" | "NO_STOCK" | "PRODUCT_GONE" };
+  | { ok: true; cart: Cart; lines: ConsumedLine[]; addedTotal: number }
+  | { ok: false; error: "NOT_FOUND" | "ALREADY_USED" | "NO_STOCK" | "PRODUCT_GONE"; lines?: ConsumedLine[] };
 
 /**
- * Единственное место, где корзина меняется.
+ * Единственное место, где меняется корзина.
  *
  * Перевод pending -> used делается условным UPDATE: если строка не
- * обновилась, значит предложение уже использовано или чужое. Так
- * одноразовость обеспечивается самой базой, а не проверкой в коде,
- * которую можно обойти гонкой двух запросов.
+ * обновилась, значит предложение уже использовано или чужое. Одноразовость
+ * обеспечивает сама база, а не проверка в коде, которую можно обойти
+ * гонкой двух запросов.
+ *
+ * Спецификация из файла проходит ровно здесь же. Второго пути добавления
+ * в корзину в приложении нет и быть не должно.
  */
 export async function consumeProposal(sessionId: string, proposalId: string): Promise<ConsumeResult> {
   await ensureDb();
@@ -567,31 +591,103 @@ export async function consumeProposal(sessionId: string, proposalId: string): Pr
   const proposal = await getProposal(sessionId, proposalId);
   if (!proposal) return { ok: false, error: "NOT_FOUND" };
 
-  const product = await getProduct(proposal.sku);
-  if (!product) return { ok: false, error: "PRODUCT_GONE" };
-  if (product.available <= 0) return { ok: false, error: "NO_STOCK" };
+  const lines: ConsumedLine[] = [];
+  let addedTotal = 0;
 
-  const cart = await getCart(sessionId);
-  const already = cart.lines.find((l) => l.sku === product.sku)?.qty ?? 0;
+  for (const item of proposal.items) {
+    const product = await getProduct(item.sku);
+    if (!product) {
+      lines.push({ sku: item.sku, name: item.sku, requested: item.qty, added: 0, capped: false, available: 0, error: "PRODUCT_GONE" });
+      continue;
+    }
+    if (product.available <= 0) {
+      lines.push({ sku: product.sku, name: product.name, requested: item.qty, added: 0, capped: false, available: 0, error: "NO_STOCK" });
+      continue;
+    }
 
-  // Количество не может превысить остаток (раздел 6, пункт 5).
-  const wanted = already + proposal.qty;
-  const finalQty = Math.min(wanted, product.available);
-  const capped = finalQty < wanted;
+    const cart = await getCart(sessionId);
+    const already = cart.lines.find((l) => l.sku === product.sku)?.qty ?? 0;
 
-  await c.execute({
-    sql: `INSERT INTO cart_items (session_id, sku, qty) VALUES (?,?,?)
-          ON CONFLICT(session_id, sku) DO UPDATE SET qty = excluded.qty`,
-    args: [sessionId, product.sku, finalQty],
-  });
+    // Количество не может превысить остаток (раздел 6, пункт 5).
+    const wanted = already + item.qty;
+    const finalQty = Math.min(wanted, product.available);
 
-  return {
-    ok: true,
-    cart: await getCart(sessionId),
-    added: { sku: product.sku, name: product.name, qty: finalQty - already },
-    capped,
-    availableQty: product.available,
-  };
+    await c.execute({
+      sql: `INSERT INTO cart_items (session_id, sku, qty) VALUES (?,?,?)
+            ON CONFLICT(session_id, sku) DO UPDATE SET qty = excluded.qty`,
+      args: [sessionId, product.sku, finalQty],
+    });
+
+    const added = finalQty - already;
+    addedTotal += added;
+    lines.push({
+      sku: product.sku, name: product.name, requested: item.qty,
+      added, capped: finalQty < wanted, available: product.available,
+    });
+  }
+
+  if (addedTotal === 0) {
+    const gone = lines.every((l) => l.error === "PRODUCT_GONE");
+    return { ok: false, error: gone ? "PRODUCT_GONE" : "NO_STOCK", lines };
+  }
+
+  return { ok: true, cart: await getCart(sessionId), lines, addedTotal };
+}
+
+export type SpecRow = { article: string; qty: number };
+export type MatchedSpec = {
+  matched: Array<{ sku: string; name: string; price: number; qty: number; available: number; status: Product["status"] }>;
+  unmatched: SpecRow[];
+};
+
+/**
+ * Сводит строки спецификации с каталогом.
+ *
+ * Артикул в файле у закупщика редко совпадает с нашим символ в символ:
+ * лишние пробелы, другой регистр, хвостовой знак. Поэтому сначала точное
+ * совпадение, затем нормализованное, и только потом позиция считается
+ * нераспознанной — врать про «нашли» нельзя, но и терять строку из-за
+ * пробела глупо.
+ */
+export async function matchSpecRows(rows: SpecRow[]): Promise<MatchedSpec> {
+  await ensureDb();
+  const norm = (v: string) => v.toLowerCase().replace(/[^a-zа-яё0-9]/gi, "");
+
+  const matched: MatchedSpec["matched"] = [];
+  const unmatched: SpecRow[] = [];
+
+  for (const row of rows) {
+    const article = String(row.article ?? "").trim();
+    const qty = Math.max(1, Math.trunc(Number(row.qty) || 1));
+    if (!article) continue;
+
+    let product = await getProduct(article);
+
+    if (!product) {
+      const res = await db().execute({
+        sql: `SELECT * FROM products
+              WHERE REPLACE(REPLACE(REPLACE(LOWER(sku),' ',''),'-',''),'_','') = ?
+              LIMIT 1`,
+        args: [norm(article)],
+      });
+      const r = res.rows[0];
+      if (r) product = toProduct(r as unknown as Record<string, unknown>);
+    }
+
+    if (!product) {
+      unmatched.push({ article, qty });
+      continue;
+    }
+
+    const existing = matched.find((m) => m.sku === product.sku);
+    if (existing) existing.qty += qty;
+    else matched.push({
+      sku: product.sku, name: product.name, price: product.price,
+      qty, available: product.available, status: product.status,
+    });
+  }
+
+  return { matched, unmatched };
 }
 
 /**

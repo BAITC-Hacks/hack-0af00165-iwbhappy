@@ -100,6 +100,19 @@ async function main(): Promise<void> {
   ).length;
   const validRequiredCount = products.filter(hasRequiredFields).length;
   const excludedStoreCount = products.filter(hasExcludedStore).length;
+  const validIdCount = products.filter(
+    (product) => Number.isSafeInteger(product.id) && Number(product.id) > 0,
+  ).length;
+  const productIds = new Set(
+    products
+      .filter((product) => Number.isSafeInteger(product.id) && Number(product.id) > 0)
+      .map((product) => String(product.id)),
+  );
+  const resolvedAlternativeCount = products.filter(
+    (product) =>
+      Array.isArray(product.alternatives) &&
+      product.alternatives.some((id) => productIds.has(String(id))),
+  ).length;
 
   const checks: Check[] = [
     {
@@ -141,6 +154,19 @@ async function main(): Promise<void> {
       actual: excludedStoreCount,
     },
   ];
+
+  checks.push(
+    {
+      label: "Каждый товар имеет числовой id",
+      passed: products.length > 0 && validIdCount === products.length,
+      actual: `${validIdCount}/${products.length}`,
+    },
+    {
+      label: "Товаров хотя бы с одной внутренней ссылкой alternatives не меньше 15",
+      passed: resolvedAlternativeCount >= 15,
+      actual: resolvedAlternativeCount,
+    },
+  );
 
   checks.forEach(printCheck);
   if (checks.some((check) => !check.passed)) process.exitCode = 1;

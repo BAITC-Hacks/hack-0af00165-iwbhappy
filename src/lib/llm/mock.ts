@@ -287,11 +287,13 @@ function render(toolMsg: Extract<Msg, { role: "tool" }>, messages: Msg[]): strin
 
     case "confirm_add": {
       const cart = (d.cart ?? {}) as AnyRec;
-      const added = (d.added ?? {}) as AnyRec;
-      const capped = d.capped
-        ? ` Добавил только ${added.qty} шт. — это весь доступный остаток (${d.availableQty} шт.).`
-        : "";
-      return `Добавил: ${String(added.name)} ×${added.qty}.${capped} В корзине ${cart.count} шт. на ${money(Number(cart.total))}.`;
+      const lines = (d.lines as AnyRec[]) ?? [];
+      const notes = (d.notes as string[]) ?? [];
+      const body = lines.length === 1
+        ? `Добавил: ${String(lines[0].name)} ×${lines[0].added}.`
+        : `Добавил ${d.addedTotal} шт. по ${lines.length} позициям.`;
+      const tail = notes.length ? "\n" + notes.join("\n") : "";
+      return `${body} В корзине ${cart.count} шт. на ${money(Number(cart.total))}.${tail}`;
     }
 
     case "get_cart": {

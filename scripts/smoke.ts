@@ -167,6 +167,44 @@ async function main() {
   check("ссылка выдана", link.ok && url.length > 0, url);
   check("ссылка отражает актуальную корзину", Number(link.data.itemsCount) === cart.count);
 
+  // ---- 6. Спецификация из файла -------------------------------------------
+  console.log(`
+${B}6. Спецификация: несколько позиций, одно подтверждение${X}`);
+
+  const pool = (await DB.searchCatalog("", undefined, 40)).filter((p) => p.available >= 2);
+  if (pool.length < 2) {
+    check("в каталоге хватает позиций для спецификации", false, `нашлось ${pool.length}`);
+  } else {
+    const [a, b] = pool;
+    const spec = await DB.matchSpecRows([
+      { article: ` ${a.sku} `, qty: 1 },          // с лишними пробелами
+      { article: b.sku.toLowerCase(), qty: 2 },   // в другом регистре
+      { article: "НЕСУЩЕСТВУЮЩИЙ-999", qty: 5 },
+    ]);
+    check("распознаны обе позиции несмотря на пробелы и регистр", spec.matched.length === 2,
+      spec.matched.map((m) => m.sku).join(", "));
+    check("несуществующий артикул честно помечен нераспознанным", spec.unmatched.length === 1,
+      spec.unmatched.map((u) => u.article).join(", "));
+
+    const before = (await DB.getCart(SESSION)).count;
+    const batch = await DB.createProposal(SESSION, spec.matched.map((m) => ({ sku: m.sku, qty: m.qty })));
+    check("предложение на спецификацию создано", batch.items.length === 2);
+    check("корзина не изменилась после предложения", (await DB.getCart(SESSION)).count === before);
+
+    const turnS = new Date().toISOString();
+    const noYes = await call("confirm_add", { proposalId: batch.id }, ctx("сколько это будет стоить?", laterThan(turnS, 1000)));
+    check("спецификация без согласия не добавляется", !noYes.ok, String(noYes.summary));
+    check("корзина всё ещё прежняя", (await DB.getCart(SESSION)).count === before);
+
+    const yes = await call("confirm_add", { proposalId: batch.id }, ctx("да, добавь", laterThan(turnS, 2000)));
+    check("спецификация добавлена одним подтверждением", yes.ok, String(yes.summary));
+    const after = await DB.getCart(SESSION);
+    check("в корзине прибавилось обе позиции", after.count >= before + 3, `${before} -> ${after.count}`);
+
+    const again = await call("confirm_add", { proposalId: batch.id }, ctx("да, добавь", laterThan(turnS, 3000)));
+    check("повторное подтверждение спецификации отклонено", !again.ok);
+  }
+
   // ---- Итог ---------------------------------------------------------------
   console.log(
     failures === 0

@@ -239,7 +239,7 @@ async function runPropose(a: z.infer<typeof ProposeArgs>, ctx: ToolContext): Pro
     };
   }
 
-  const proposal = await createProposal(ctx.sessionId, p.sku, a.qty);
+  const proposal = await createProposal(ctx.sessionId, [{ sku: p.sku, qty: a.qty }]);
   return {
     ok: true,
     data: {
@@ -312,18 +312,26 @@ async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Pro
     return { ok: false, data: { error: human[res.error] }, summary: human[res.error] };
   }
 
+  const capped = res.lines.filter((l) => l.capped);
+  const failed = res.lines.filter((l) => l.error);
+
   return {
     ok: true,
     data: {
       cart: res.cart,
-      added: res.added,
-      capped: res.capped,
-      availableQty: res.availableQty,
-      note: res.capped
-        ? `добавлено только ${res.added.qty} шт. — это весь доступный остаток. Обязательно скажи об этом клиенту.`
+      lines: res.lines,
+      addedTotal: res.addedTotal,
+      notes: [
+        ...capped.map((l) => `${l.name}: запрошено ${l.requested}, добавлено ${l.added} — это весь остаток`),
+        ...failed.map((l) => `${l.name}: не добавлено (${l.error === "NO_STOCK" ? "нет в наличии" : "нет в каталоге"})`),
+      ],
+      instruction: failed.length || capped.length
+        ? "обязательно скажи клиенту, что добавилось не всё, и назови причины"
         : null,
     },
-    summary: `в корзину: ${res.added.name} ×${res.added.qty}, итого ${money(res.cart.total)}`,
+    summary: res.lines.length === 1
+      ? `в корзину: ${res.lines[0].name} ×${res.lines[0].added}, итого ${money(res.cart.total)}`
+      : `в корзину: ${res.addedTotal} шт. по ${res.lines.length} позициям, итого ${money(res.cart.total)}`,
   };
 }
 

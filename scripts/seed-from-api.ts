@@ -43,6 +43,7 @@ type DemoCertificate = {
 };
 
 type CatalogProduct = {
+  id: number;
   sku: string;
   name: string;
   rawName: string;
@@ -206,7 +207,10 @@ function cleanName(rawName: string, sku: string, article: string): string {
       .trim();
   }
 
-  return name;
+  return name
+    .replace(/(?:\s*[!*]+\s*)+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isExcludedStore(name: string): boolean {
@@ -288,6 +292,7 @@ function makeCertificate(sku: string): DemoCertificate | null {
 
 function mapProduct(summary: JsonObject, detail: JsonObject): CatalogProduct | null {
   const product = { ...summary, ...detail };
+  const id = Number(detail.id ?? summary.id);
   const properties = isObject(detail.properties) ? detail.properties : {};
   const sku =
     asString(properties.ARTIKULPOSTAVSHCHIKA) || asString(product.article);
@@ -298,7 +303,9 @@ function mapProduct(summary: JsonObject, detail: JsonObject): CatalogProduct | n
   const category = extractCategory(url);
   const price = asNumber(product.price);
 
-  if (!sku || !name || !category || price <= 0) return null;
+  if (!Number.isSafeInteger(id) || id <= 0 || !sku || !name || !category || price <= 0) {
+    return null;
+  }
 
   const specs: Record<string, string> = {};
   for (const [sourceKey, label] of Object.entries(SPEC_FIELDS)) {
@@ -311,6 +318,7 @@ function mapProduct(summary: JsonObject, detail: JsonObject): CatalogProduct | n
   const parsedMinOrder = asNumber(properties.KRATNOST_MIN);
 
   return {
+    id,
     sku,
     name,
     rawName,
