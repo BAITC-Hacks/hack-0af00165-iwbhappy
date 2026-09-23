@@ -86,7 +86,11 @@
 
 ## Запуск
 
+Нужен Node.js 20 или новее (проверено на 22).
+
 ```bash
+git clone https://github.com/BAITC-Hacks/hack-0af00165-iwbhappy.git
+cd hack-0af00165-iwbhappy
 npm install
 npm run dev
 ```
