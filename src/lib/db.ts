@@ -1,48 +1,53 @@
 import { createClient, type Client } from "@libsql/client";
 import { CONFIG } from "./config";
-import catalog from "../../data/products.json";
+import rawCatalog from "../../data/catalog.json";
+import rawTerms from "../../data/terms.json";
 
 /**
- * Весь доступ к БД идёт только отсюда.
- * Диалект — обычный SQLite. Адрес базы меняется одной переменной DB_URL:
- *   локально  file:./.data/hack.db
- *   на Vercel libsql://<db>.turso.io  (+ DB_AUTH_TOKEN)
- * Без Turso на Vercel база уезжает в /tmp и живёт только внутри одного
- * инстанса — для демо это работает, но корзина может потеряться на
- * холодном старте. Флаг ephemeral подсвечивает это в интерфейсе.
+ * Весь доступ к БД — только отсюда (раздел 0 AGENTS.md).
+ * Диалект обычный SQLite, адрес базы меняется переменной DB_URL.
  */
 
+export type Store = { id: number; name: string; qty: number };
+export type Certificate = { title: string; url: string; demo: boolean };
+
 export type Product = {
-  id: string;
+  id: number;
   sku: string;
-  title: string;
+  name: string;
+  rawName?: string;
   category: string;
+  categoryTitle: string;
   brand: string;
+  specs: Record<string, string>;
   price: number;
-  rating: number;
-  reviews: number;
-  stock: number;
-  delivery_days: number;
-  return_window_days: number;
-  tags: string[];
-  specs: Record<string, unknown>;
+  stock: Store[];
+  available: number;
+  status: "in_stock" | "out_of_stock";
+  alternatives: string[];
+  minOrder: number;
+  url: string;
+  certificate?: Certificate | null;
+  description?: string;
 };
 
-export type CartLine = { product_id: string; title: string; price: number; qty: number; line_total: number };
+export type CartLine = { sku: string; name: string; price: number; qty: number; lineTotal: number };
 export type Cart = { lines: CartLine[]; total: number; count: number };
 
-export type OrderItem = { product_id: string; title: string; price: number; qty: number };
-export type Order = {
+export type Proposal = {
   id: string;
-  status: "placed" | "shipped" | "delivered" | "return_requested" | "refunded";
-  total: number;
-  created_at: string;
-  eta_days: number;
-  items: OrderItem[];
-  return_reason: string | null;
+  sessionId: string;
+  sku: string;
+  qty: number;
+  status: "pending" | "used" | "cancelled";
+  createdAt: string;
 };
 
-const products = catalog as Product[];
+export type Alternative = Product & { reason: string };
+
+// --------------------------------------------------------------------------
+// Клиент
+// --------------------------------------------------------------------------
 
 let client: Client | null = null;
 let ready: Promise<void> | null = null;
@@ -50,334 +55,506 @@ let ready: Promise<void> | null = null;
 function resolveDbUrl(): { url: string; ephemeral: boolean } {
   const raw = CONFIG.db.url;
   if (!raw.startsWith("file:")) return { url: raw, ephemeral: false };
-  // На Vercel писать можно только в /tmp, и он свой у каждого инстанса.
   if (process.env.VERCEL) return { url: "file:/tmp/hack.db", ephemeral: true };
   return { url: raw, ephemeral: false };
 }
 
 export const DB_INFO = resolveDbUrl();
 
-function getClient(): Client {
-  if (!client) {
-    client = createClient({ url: DB_INFO.url, authToken: CONFIG.db.authToken });
-  }
+function db(): Client {
+  if (!client) client = createClient({ url: DB_INFO.url, authToken: CONFIG.db.authToken });
   return client;
 }
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS products (
-  id TEXT PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   sku TEXT NOT NULL,
-  title TEXT NOT NULL,
+  name TEXT NOT NULL,
+  raw_name TEXT,
   category TEXT NOT NULL,
-  brand TEXT NOT NULL,
+  category_title TEXT,
+  brand TEXT,
+  specs TEXT NOT NULL,
   price INTEGER NOT NULL,
-  rating REAL NOT NULL,
-  reviews INTEGER NOT NULL,
-  stock INTEGER NOT NULL,
-  delivery_days INTEGER NOT NULL,
-  return_window_days INTEGER NOT NULL,
-  tags TEXT NOT NULL,
-  specs TEXT NOT NULL
+  stock TEXT NOT NULL,
+  available INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  alternatives TEXT NOT NULL,
+  min_order INTEGER NOT NULL DEFAULT 1,
+  url TEXT,
+  certificate TEXT,
+  description TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+
 CREATE TABLE IF NOT EXISTS cart_items (
   session_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
+  sku TEXT NOT NULL,
   qty INTEGER NOT NULL,
-  PRIMARY KEY (session_id, product_id)
+  PRIMARY KEY (session_id, sku)
 );
-CREATE TABLE IF NOT EXISTS orders (
+
+CREATE TABLE IF NOT EXISTS proposals (
   id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
+  sku TEXT NOT NULL,
+  qty INTEGER NOT NULL,
   status TEXT NOT NULL,
-  total INTEGER NOT NULL,
-  eta_days INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  return_reason TEXT
+  created_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS order_items (
-  order_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  price INTEGER NOT NULL,
-  qty INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_orders_session ON orders(session_id);
+CREATE INDEX IF NOT EXISTS idx_proposals_session ON proposals(session_id);
 `;
 
-/** Создаёт схему и засеивает каталог. Идемпотентно, вызывается перед любым запросом. */
+// --------------------------------------------------------------------------
+// Засев
+// --------------------------------------------------------------------------
+
+/**
+ * Строки каталога проверяем поштучно и битые пропускаем.
+ * Выгрузку делает отдельный скрипт, и он может отработать частично —
+ * приложение из-за этого падать не должно, оно должно честно показать,
+ * сколько позиций доехало.
+ */
+function normalize(row: unknown): Product | null {
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+
+  const sku = typeof r.sku === "string" ? r.sku.trim() : "";
+  const name = typeof r.name === "string" ? r.name.trim() : "";
+  const price = Number(r.price);
+  if (!sku || !name || !Number.isFinite(price) || price <= 0) return null;
+
+  const stock: Store[] = Array.isArray(r.stock)
+    ? (r.stock as Record<string, unknown>[]).flatMap((s) => {
+        const qty = Number(s?.qty ?? s?.quantity);
+        const storeName = typeof s?.name === "string" ? s.name : "";
+        if (!storeName || !Number.isFinite(qty)) return [];
+        return [{ id: Number(s?.id ?? 0), name: storeName, qty }];
+      })
+    : [];
+
+  // Доступный остаток считаем сами: полю available из файла доверяем,
+  // только если оно сходится с суммой по складам (раздел 12.1).
+  const summed = stock.reduce((s, x) => s + Math.max(0, x.qty), 0);
+  const declared = Number(r.available);
+  const available = Number.isFinite(declared) && declared === summed ? declared : summed;
+
+  const cert = r.certificate as Record<string, unknown> | null | undefined;
+
+  return {
+    id: Number(r.id ?? 0),
+    sku,
+    name,
+    rawName: typeof r.rawName === "string" ? r.rawName : undefined,
+    category: typeof r.category === "string" && r.category ? r.category : "прочее",
+    categoryTitle: typeof r.categoryTitle === "string" ? r.categoryTitle : "",
+    brand: typeof r.brand === "string" ? r.brand : "",
+    specs: r.specs && typeof r.specs === "object" ? (r.specs as Record<string, string>) : {},
+    price: Math.round(price),
+    stock,
+    available,
+    status: available > 0 ? "in_stock" : "out_of_stock",
+    alternatives: Array.isArray(r.alternatives) ? r.alternatives.map(String) : [],
+    minOrder: Math.max(1, Number(r.minOrder) || 1),
+    url: typeof r.url === "string" ? r.url : "",
+    certificate: cert && typeof cert.title === "string"
+      ? { title: String(cert.title), url: String(cert.url ?? ""), demo: cert.demo !== false }
+      : null,
+    description: typeof r.description === "string" ? r.description : undefined,
+  };
+}
+
+const catalog: Product[] = (Array.isArray(rawCatalog) ? rawCatalog : [])
+  .map(normalize)
+  .filter((p): p is Product => p !== null);
+
+export const CATALOG_SIZE = catalog.length;
+
 export function ensureDb(): Promise<void> {
   if (!ready) {
     ready = (async () => {
-      const db = getClient();
-      await db.executeMultiple(SCHEMA);
-      const count = await db.execute("SELECT COUNT(*) AS n FROM products");
-      if (Number(count.rows[0]?.n ?? 0) !== products.length) {
-        await db.execute("DELETE FROM products");
-        await db.batch(
-          products.map((p) => ({
-            sql: `INSERT INTO products (id,sku,title,category,brand,price,rating,reviews,stock,delivery_days,return_window_days,tags,specs)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            args: [
-              p.id, p.sku, p.title, p.category, p.brand, p.price, p.rating, p.reviews,
-              p.stock, p.delivery_days, p.return_window_days,
-              JSON.stringify(p.tags), JSON.stringify(p.specs),
-            ],
-          })),
-          "write",
-        );
+      const c = db();
+      await c.executeMultiple(SCHEMA);
+      const n = await c.execute("SELECT COUNT(*) AS n FROM products");
+      if (Number(n.rows[0]?.n ?? 0) !== catalog.length) {
+        await c.execute("DELETE FROM products");
+        for (let i = 0; i < catalog.length; i += 100) {
+          await c.batch(
+            catalog.slice(i, i + 100).map((p) => ({
+              sql: `INSERT OR REPLACE INTO products
+                    (id,sku,name,raw_name,category,category_title,brand,specs,price,stock,available,status,alternatives,min_order,url,certificate,description)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+              args: [
+                p.id, p.sku, p.name, p.rawName ?? null, p.category, p.categoryTitle, p.brand,
+                JSON.stringify(p.specs), p.price, JSON.stringify(p.stock), p.available, p.status,
+                JSON.stringify(p.alternatives), p.minOrder, p.url,
+                p.certificate ? JSON.stringify(p.certificate) : null,
+                p.description ?? null,
+              ],
+            })),
+            "write",
+          );
+        }
       }
-    })().catch((e) => {
-      ready = null; // дать следующему запросу шанс переинициализировать
-      throw e;
-    });
+    })().catch((e) => { ready = null; throw e; });
   }
   return ready;
 }
 
-function rowToProduct(r: Record<string, unknown>): Product {
+function toProduct(r: Record<string, unknown>): Product {
   return {
-    id: String(r.id),
+    id: Number(r.id),
     sku: String(r.sku),
-    title: String(r.title),
+    name: String(r.name),
+    rawName: r.raw_name ? String(r.raw_name) : undefined,
     category: String(r.category),
-    brand: String(r.brand),
+    categoryTitle: String(r.category_title ?? ""),
+    brand: String(r.brand ?? ""),
+    specs: JSON.parse(String(r.specs || "{}")),
     price: Number(r.price),
-    rating: Number(r.rating),
-    reviews: Number(r.reviews),
-    stock: Number(r.stock),
-    delivery_days: Number(r.delivery_days),
-    return_window_days: Number(r.return_window_days),
-    tags: JSON.parse(String(r.tags)),
-    specs: JSON.parse(String(r.specs)),
+    stock: JSON.parse(String(r.stock || "[]")),
+    available: Number(r.available),
+    status: String(r.status) as Product["status"],
+    alternatives: JSON.parse(String(r.alternatives || "[]")),
+    minOrder: Number(r.min_order ?? 1),
+    url: String(r.url ?? ""),
+    certificate: r.certificate ? JSON.parse(String(r.certificate)) : null,
+    description: r.description ? String(r.description) : undefined,
   };
 }
 
-export type SearchArgs = {
-  query?: string;
-  category?: string;
-  max_price?: number;
-  min_rating?: number;
-  in_stock_only?: boolean;
-  sort_by?: "relevance" | "price_asc" | "price_desc" | "rating";
-  limit?: number;
-};
+// --------------------------------------------------------------------------
+// Каталог
+// --------------------------------------------------------------------------
 
 const STOPWORDS = new Set([
-  "нужен", "нужна", "нужно", "нужны", "хочу", "купить", "куплю", "посоветуй", "подбери",
-  "для", "под", "про", "при", "над", "без", "или", "что", "как", "это", "тот", "эту",
-  "мне", "меня", "тебе", "себе", "него", "them", "the", "and", "for", "with",
-  "дешевле", "дороже", "лучше", "какой", "какие", "есть", "тенге",
+  "нужен", "нужна", "нужно", "хочу", "купить", "есть", "ли", "для", "под", "про",
+  "или", "что", "как", "это", "мне", "the", "and", "for", "with", "штук", "шт",
 ]);
 
-/**
- * Грубая нормализация под русский: режем хвост слова, чтобы «ноутбук»,
- * «ноутбука» и «ноутбуки» считались одним токеном. Стеммер сюда не нужен —
- * каталог маленький, а любая внешняя зависимость в день Х это риск.
- */
-function tokenize(query: string): string[] {
-  return query
+/** Грубая нормализация под русский: режем хвост слова до 5 символов. */
+function tokenize(q: string): string[] {
+  return q
     .toLowerCase()
     .split(/[^a-zа-яё0-9]+/i)
-    .filter((w) => w.length >= 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w))
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
     .map((w) => (w.length > 5 ? w.slice(0, 5) : w))
     .filter((w, i, a) => a.indexOf(w) === i)
     .slice(0, 6);
 }
 
-async function runSearchQuery(a: SearchArgs, tokens: string[]): Promise<Product[]> {
-  const where: string[] = [];
-  const args: unknown[] = [];
-
-  if (a.category) { where.push("LOWER(category) = LOWER(?)"); args.push(a.category); }
-  if (a.max_price !== undefined) { where.push("price <= ?"); args.push(a.max_price); }
-  if (a.min_rating !== undefined) { where.push("rating >= ?"); args.push(a.min_rating); }
-  if (a.in_stock_only) where.push("stock > 0");
-
-  const scoreExpr = tokens.length
+async function query(sqlTail: string, tokens: string[], extra: unknown[], limit: number): Promise<Product[]> {
+  const score = tokens.length
     ? tokens.map(() => "(CASE WHEN hay LIKE ? THEN 1 ELSE 0 END)").join(" + ")
     : "0";
-  const scoreArgs = tokens.map((t) => `%${t}%`);
-  if (tokens.length) where.push("score > 0");
-
-  const order =
-    a.sort_by === "price_asc" ? "price ASC"
-    : a.sort_by === "price_desc" ? "price DESC"
-    : a.sort_by === "rating" ? "rating DESC, reviews DESC"
-    : "rating DESC, price ASC";
-
   const sql = `
     WITH scored AS (
-      SELECT p.*, (${scoreExpr}) AS score
-      FROM (
-        SELECT *, LOWER(title || ' ' || brand || ' ' || category || ' ' || tags) AS hay
+      SELECT p.*, (${score}) AS score FROM (
+        SELECT *, LOWER(sku || ' ' || name || ' ' || category || ' ' || COALESCE(category_title,'') || ' ' || COALESCE(brand,'') || ' ' || specs) AS hay
         FROM products
       ) AS p
     )
-    SELECT * FROM scored
-    ${where.length ? "WHERE " + where.join(" AND ") : ""}
-    ORDER BY score DESC, ${order}
+    SELECT * FROM scored ${sqlTail}
+    ORDER BY score DESC, available > 0 DESC, price ASC
     LIMIT ?`;
-
-  const res = await getClient().execute({
+  const res = await db().execute({
     sql,
-    args: [...scoreArgs, ...args, Math.min(a.limit ?? 5, 12)] as never,
+    args: [...tokens.map((t) => `%${t}%`), ...extra, limit] as never,
   });
-  return res.rows.map((r) => rowToProduct(r as unknown as Record<string, unknown>));
+  return res.rows.map((r) => toProduct(r as unknown as Record<string, unknown>));
 }
 
-export async function searchProducts(a: SearchArgs): Promise<Product[]> {
+/** Поиск по каталогу. До 5 позиций (раздел 5). */
+export async function searchCatalog(q: string, category?: string): Promise<Product[]> {
   await ensureDb();
+  const tokens = tokenize(q || "");
+  const where: string[] = [];
+  const extra: unknown[] = [];
+  if (category) { where.push("LOWER(category) LIKE ?"); extra.push(`%${category.toLowerCase()}%`); }
+  if (tokens.length) where.push("score > 0");
 
-  // Модель часто кладёт в query всю фразу пользователя целиком, поэтому
-  // совпадение считаем по отдельным словам и ранжируем по их числу.
-  const tokens = a.query ? tokenize(a.query) : [];
-  const hit = await runSearchQuery(a, tokens);
+  const tail = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const hit = await query(tail, tokens, extra, 5);
   if (hit.length > 0 || tokens.length === 0) return hit;
 
-  // Пустая выдача — самый частый способ сломать демо: фраза вроде
-  // «сравни с вариантом подешевле» не содержит ни одного слова из каталога.
-  // Тогда отбрасываем текст и оставляем только фильтры.
-  return runSearchQuery(a, []);
+  // Пустая выдача — снимаем текстовое условие, фильтры оставляем.
+  const tail2 = category ? "WHERE LOWER(category) LIKE ?" : "";
+  return query(tail2, [], category ? [`%${category.toLowerCase()}%`] : [], 5);
 }
 
-export async function getProduct(id: string): Promise<Product | null> {
+export async function getProduct(sku: string): Promise<Product | null> {
   await ensureDb();
-  const res = await getClient().execute({ sql: "SELECT * FROM products WHERE id = ? OR sku = ?", args: [id, id] });
+  const res = await db().execute({
+    sql: "SELECT * FROM products WHERE LOWER(sku) = LOWER(?) OR CAST(id AS TEXT) = ? LIMIT 1",
+    args: [sku.trim(), sku.trim()],
+  });
   const row = res.rows[0];
-  return row ? rowToProduct(row as unknown as Record<string, unknown>) : null;
+  return row ? toProduct(row as unknown as Record<string, unknown>) : null;
 }
+
+const SPEC_LABELS: Record<string, string> = {
+  NOMINALNYY_TOK: "Номинальный ток",
+  KOLICHESTVO_POLYUSOV: "Количество полюсов",
+  NOMINALNOE_NAPRYAZHENIE: "Номинальное напряжение",
+  NOMINALNAYA_OTKLYUCHAYUSHCHAYA_SPOSOBNOST: "Отключающая способность",
+  TIP_USTANOVKI: "Тип установки",
+};
+
+export function labelSpec(key: string): string {
+  return SPEC_LABELS[key] ?? key;
+}
+
+/**
+ * Объяснение подбора аналога. Объяснимость рекомендаций — отдельное
+ * требование кейса, поэтому reason собирается из фактов, а не из общих слов.
+ */
+function explain(base: Product, alt: Product, fromPartner: boolean): string {
+  const parts: string[] = [];
+  if (fromPartner) parts.push("отмечен в каталоге как рекомендуемая замена");
+  else parts.push(`та же категория «${base.categoryTitle || base.category}»`);
+
+  const same = Object.keys(base.specs).filter(
+    (k) => alt.specs[k] && alt.specs[k] === base.specs[k],
+  );
+  if (same.length) {
+    parts.push(`совпадают ${same.slice(0, 3).map((k) => `${labelSpec(k)} (${alt.specs[k]})`).join(", ")}`);
+  }
+
+  if (base.price > 0) {
+    const d = Math.round(((alt.price - base.price) / base.price) * 100);
+    if (Math.abs(d) <= 3) parts.push("цена практически та же");
+    else parts.push(d > 0 ? `дороже на ${d}%` : `дешевле на ${Math.abs(d)}%`);
+  }
+
+  parts.push(`в наличии ${alt.available} шт.`);
+  return parts.join("; ");
+}
+
+/**
+ * Аналоги. Сначала то, что партнёр сам пометил как рекомендуемое,
+ * затем добор по категории — иначе на позиции, чьи RECOMMEND не попали
+ * в срез каталога, приёмочный тест 2 провалится.
+ */
+export async function findAlternatives(sku: string, limit = 3): Promise<{ base: Product | null; items: Alternative[] }> {
+  await ensureDb();
+  const base = await getProduct(sku);
+  if (!base) return { base: null, items: [] };
+
+  const picked: Alternative[] = [];
+  const seen = new Set<string>([base.sku]);
+
+  for (const ref of base.alternatives) {
+    if (picked.length >= limit) break;
+    const cand = await getProduct(ref);
+    if (!cand || seen.has(cand.sku) || cand.available <= 0) continue;
+    seen.add(cand.sku);
+    picked.push({ ...cand, reason: explain(base, cand, true) });
+  }
+
+  if (picked.length < limit) {
+    const res = await db().execute({
+      sql: `SELECT * FROM products
+            WHERE category = ? AND available > 0 AND sku <> ?
+            ORDER BY ABS(price - ?) ASC LIMIT ?`,
+      args: [base.category, base.sku, base.price, limit * 3],
+    });
+    for (const row of res.rows) {
+      if (picked.length >= limit) break;
+      const cand = toProduct(row as unknown as Record<string, unknown>);
+      if (seen.has(cand.sku)) continue;
+      seen.add(cand.sku);
+      picked.push({ ...cand, reason: explain(base, cand, false) });
+    }
+  }
+
+  return { base, items: picked };
+}
+
+// --------------------------------------------------------------------------
+// Условия покупки
+// --------------------------------------------------------------------------
+
+export type Term = { topic: string; title: string; text: string; details?: string[] };
+
+const TERM_TITLES: Record<string, string> = {
+  payment: "Оплата",
+  delivery: "Доставка",
+  min_order: "Минимальная партия",
+  pickup: "Самовывоз",
+};
+
+/**
+ * terms.json пишет отдельный скрипт, и его форма может быть как плоской
+ * (`"payment": "текст"`), так и развёрнутой (`{title, text, details}`).
+ * Читаем обе: падать из-за формата файла с условиями — глупая причина
+ * провалить третий приёмочный тест.
+ */
+export function getTerms(topic: string): Term[] {
+  const src = (rawTerms ?? {}) as Record<string, unknown>;
+
+  const all: Term[] = Object.entries(src)
+    .filter(([k, v]) => !k.startsWith("_") && v != null)
+    .map(([k, v]) => {
+      if (typeof v === "string") {
+        return { topic: k, title: TERM_TITLES[k] ?? k, text: v };
+      }
+      const o = v as Record<string, unknown>;
+      return {
+        topic: k,
+        title: typeof o.title === "string" ? o.title : (TERM_TITLES[k] ?? k),
+        text: typeof o.text === "string" ? o.text : JSON.stringify(v),
+        details: Array.isArray(o.details) ? o.details.map(String) : undefined,
+      };
+    });
+
+  if (topic && topic !== "all") {
+    const hit = all.find((t) => t.topic === topic);
+    if (hit) return [hit];
+  }
+  return all;
+}
+
+// --------------------------------------------------------------------------
+// Корзина
+// --------------------------------------------------------------------------
 
 export async function getCart(sessionId: string): Promise<Cart> {
   await ensureDb();
-  const res = await getClient().execute({
-    sql: `SELECT c.product_id, p.title, p.price, c.qty
-          FROM cart_items c JOIN products p ON p.id = c.product_id
-          WHERE c.session_id = ? ORDER BY p.title`,
+  const res = await db().execute({
+    sql: `SELECT c.sku, p.name, p.price, c.qty
+          FROM cart_items c JOIN products p ON p.sku = c.sku
+          WHERE c.session_id = ? ORDER BY p.name`,
     args: [sessionId],
   });
   const lines: CartLine[] = res.rows.map((r) => {
     const price = Number(r.price);
     const qty = Number(r.qty);
-    return { product_id: String(r.product_id), title: String(r.title), price, qty, line_total: price * qty };
+    return { sku: String(r.sku), name: String(r.name), price, qty, lineTotal: price * qty };
   });
-  return { lines, total: lines.reduce((s, l) => s + l.line_total, 0), count: lines.reduce((s, l) => s + l.qty, 0) };
+  return { lines, total: lines.reduce((s, l) => s + l.lineTotal, 0), count: lines.reduce((s, l) => s + l.qty, 0) };
 }
 
-export async function setCartQty(sessionId: string, productId: string, qty: number): Promise<void> {
+// --------------------------------------------------------------------------
+// Предложения — инвариант раздела 6
+// --------------------------------------------------------------------------
+
+export async function createProposal(sessionId: string, sku: string, qty: number): Promise<Proposal> {
   await ensureDb();
-  const db = getClient();
-  if (qty <= 0) {
-    await db.execute({ sql: "DELETE FROM cart_items WHERE session_id = ? AND product_id = ?", args: [sessionId, productId] });
-    return;
-  }
-  await db.execute({
-    sql: `INSERT INTO cart_items (session_id, product_id, qty) VALUES (?,?,?)
-          ON CONFLICT(session_id, product_id) DO UPDATE SET qty = excluded.qty`,
-    args: [sessionId, productId, qty],
-  });
-}
-
-export async function clearCart(sessionId: string): Promise<void> {
-  await ensureDb();
-  await getClient().execute({ sql: "DELETE FROM cart_items WHERE session_id = ?", args: [sessionId] });
-}
-
-export async function listOrders(sessionId: string): Promise<Order[]> {
-  await ensureDb();
-  const db = getClient();
-  const res = await db.execute({
-    sql: "SELECT * FROM orders WHERE session_id = ? ORDER BY created_at DESC",
-    args: [sessionId],
-  });
-  const orders: Order[] = [];
-  for (const r of res.rows) {
-    const items = await db.execute({
-      sql: "SELECT product_id, title, price, qty FROM order_items WHERE order_id = ?",
-      args: [String(r.id)],
-    });
-    orders.push({
-      id: String(r.id),
-      status: String(r.status) as Order["status"],
-      total: Number(r.total),
-      created_at: String(r.created_at),
-      eta_days: Number(r.eta_days),
-      return_reason: r.return_reason === null ? null : String(r.return_reason),
-      items: items.rows.map((i) => ({
-        product_id: String(i.product_id),
-        title: String(i.title),
-        price: Number(i.price),
-        qty: Number(i.qty),
-      })),
-    });
-  }
-  return orders;
-}
-
-export async function getOrder(sessionId: string, orderId: string): Promise<Order | null> {
-  const all = await listOrders(sessionId);
-  return all.find((o) => o.id.toLowerCase() === orderId.toLowerCase()) ?? null;
-}
-
-export async function placeOrder(sessionId: string): Promise<Order> {
-  await ensureDb();
-  const cart = await getCart(sessionId);
-  if (cart.lines.length === 0) throw new Error("EMPTY_CART");
-
-  const db = getClient();
-  const etaRes = await db.execute({
-    sql: `SELECT MAX(p.delivery_days) AS eta FROM cart_items c JOIN products p ON p.id = c.product_id WHERE c.session_id = ?`,
-    args: [sessionId],
-  });
-  const eta = Number(etaRes.rows[0]?.eta ?? 2);
-  const id = `ORD-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  const id = `prp_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
   const createdAt = new Date().toISOString();
+  await db().execute({
+    sql: "INSERT INTO proposals (id, session_id, sku, qty, status, created_at) VALUES (?,?,?,?,'pending',?)",
+    args: [id, sessionId, sku, qty, createdAt],
+  });
+  return { id, sessionId, sku, qty, status: "pending", createdAt };
+}
 
-  await db.batch(
-    [
-      {
-        sql: "INSERT INTO orders (id, session_id, status, total, eta_days, created_at, return_reason) VALUES (?,?,?,?,?,?,NULL)",
-        args: [id, sessionId, "placed", cart.total, eta, createdAt],
-      },
-      ...cart.lines.map((l) => ({
-        sql: "INSERT INTO order_items (order_id, product_id, title, price, qty) VALUES (?,?,?,?,?)",
-        args: [id, l.product_id, l.title, l.price, l.qty],
-      })),
-      { sql: "DELETE FROM cart_items WHERE session_id = ?", args: [sessionId] },
-    ],
-    "write",
-  );
-
+export async function getProposal(sessionId: string, id: string): Promise<Proposal | null> {
+  await ensureDb();
+  const res = await db().execute({
+    sql: "SELECT * FROM proposals WHERE id = ? AND session_id = ?",
+    args: [id, sessionId],
+  });
+  const r = res.rows[0];
+  if (!r) return null;
   return {
-    id, status: "placed", total: cart.total, created_at: createdAt, eta_days: eta,
-    return_reason: null,
-    items: cart.lines.map((l) => ({ product_id: l.product_id, title: l.title, price: l.price, qty: l.qty })),
+    id: String(r.id), sessionId: String(r.session_id), sku: String(r.sku),
+    qty: Number(r.qty), status: String(r.status) as Proposal["status"], createdAt: String(r.created_at),
   };
 }
 
-export async function requestReturn(sessionId: string, orderId: string, reason: string): Promise<Order> {
+export type ConsumeResult =
+  | { ok: true; cart: Cart; added: { sku: string; name: string; qty: number }; capped: boolean; availableQty: number }
+  | { ok: false; error: "NOT_FOUND" | "ALREADY_USED" | "NO_STOCK" | "PRODUCT_GONE" };
+
+/**
+ * Единственное место, где корзина меняется.
+ *
+ * Перевод pending -> used делается условным UPDATE: если строка не
+ * обновилась, значит предложение уже использовано или чужое. Так
+ * одноразовость обеспечивается самой базой, а не проверкой в коде,
+ * которую можно обойти гонкой двух запросов.
+ */
+export async function consumeProposal(sessionId: string, proposalId: string): Promise<ConsumeResult> {
   await ensureDb();
-  const order = await getOrder(sessionId, orderId);
-  if (!order) throw new Error("ORDER_NOT_FOUND");
-  if (order.status === "refunded" || order.status === "return_requested") throw new Error("ALREADY_RETURNING");
-  await getClient().execute({
-    sql: "UPDATE orders SET status = 'return_requested', return_reason = ? WHERE id = ? AND session_id = ?",
-    args: [reason, order.id, sessionId],
+  const c = db();
+
+  const claim = await c.execute({
+    sql: "UPDATE proposals SET status = 'used' WHERE id = ? AND session_id = ? AND status = 'pending'",
+    args: [proposalId, sessionId],
   });
-  return { ...order, status: "return_requested", return_reason: reason };
+  if (Number(claim.rowsAffected ?? 0) === 0) {
+    const existing = await getProposal(sessionId, proposalId);
+    return { ok: false, error: existing ? "ALREADY_USED" : "NOT_FOUND" };
+  }
+
+  const proposal = await getProposal(sessionId, proposalId);
+  if (!proposal) return { ok: false, error: "NOT_FOUND" };
+
+  const product = await getProduct(proposal.sku);
+  if (!product) return { ok: false, error: "PRODUCT_GONE" };
+  if (product.available <= 0) return { ok: false, error: "NO_STOCK" };
+
+  const cart = await getCart(sessionId);
+  const already = cart.lines.find((l) => l.sku === product.sku)?.qty ?? 0;
+
+  // Количество не может превысить остаток (раздел 6, пункт 5).
+  const wanted = already + proposal.qty;
+  const finalQty = Math.min(wanted, product.available);
+  const capped = finalQty < wanted;
+
+  await c.execute({
+    sql: `INSERT INTO cart_items (session_id, sku, qty) VALUES (?,?,?)
+          ON CONFLICT(session_id, sku) DO UPDATE SET qty = excluded.qty`,
+    args: [sessionId, product.sku, finalQty],
+  });
+
+  return {
+    ok: true,
+    cart: await getCart(sessionId),
+    added: { sku: product.sku, name: product.name, qty: finalQty - already },
+    capped,
+    availableQty: product.available,
+  };
+}
+
+/**
+ * Артикулы для демо-кнопок берём из реального каталога, а не хардкодим:
+ * захардкоженный артикул протухнет при следующей выгрузке ровно в день защиты.
+ * inStock — с запасом больше 2 шт., чтобы отработал сценарий «добавь 2 штуки».
+ * outOfStock — обязательно с непустым alternatives, иначе тест 2 нечем показывать.
+ */
+export async function pickDemoSkus(): Promise<{ inStock: string; outOfStock: string }> {
+  await ensureDb();
+  const c = db();
+  const a = await c.execute(
+    "SELECT sku FROM products WHERE available >= 3 AND certificate IS NOT NULL ORDER BY available DESC LIMIT 1",
+  );
+  const aFallback = a.rows.length
+    ? a
+    : await c.execute("SELECT sku FROM products WHERE available > 0 ORDER BY available DESC LIMIT 1");
+
+  const b = await c.execute(
+    "SELECT sku FROM products WHERE available = 0 AND alternatives <> '[]' LIMIT 1",
+  );
+  const bFallback = b.rows.length
+    ? b
+    : await c.execute("SELECT sku FROM products WHERE available = 0 LIMIT 1");
+
+  return {
+    inStock: String(aFallback.rows[0]?.sku ?? ""),
+    outOfStock: String(bFallback.rows[0]?.sku ?? ""),
+  };
 }
 
 export async function resetSession(sessionId: string): Promise<void> {
   await ensureDb();
-  const db = getClient();
-  await db.execute({
-    sql: "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE session_id = ?)",
-    args: [sessionId],
-  });
-  await db.batch(
+  await db().batch(
     [
-      { sql: "DELETE FROM orders WHERE session_id = ?", args: [sessionId] },
       { sql: "DELETE FROM cart_items WHERE session_id = ?", args: [sessionId] },
+      { sql: "DELETE FROM proposals WHERE session_id = ?", args: [sessionId] },
     ],
     "write",
   );

@@ -1,279 +1,317 @@
 import { z } from "zod";
 import {
-  clearCart, getCart, getProduct, listOrders, placeOrder,
-  requestReturn, searchProducts, setCartQty, type Product,
+  consumeProposal, createProposal, findAlternatives, getCart, getProduct,
+  getProposal, getTerms, labelSpec, searchCatalog, type Product,
 } from "../db";
 import type { ToolSpec } from "../llm/types";
 
 /**
- * Ровно три инструмента. Больше на пятичасовом хакатоне не нужно:
- * каждый лишний инструмент — это лишний способ для модели ошибиться
- * и лишняя ветка, которую придётся чинить в последний час.
- *
- *   search_catalog  — подбор и сравнение
- *   update_cart     — корзина
- *   manage_order    — оформление, статус, возврат
- *
- * Схема каждого описана дважды: JSON Schema уходит в модель,
- * zod-схема валидирует то, что модель прислала обратно.
+ * Восемь инструментов раздела 5 AGENTS.md — тонкие обёртки над SQLite.
+ * Никакой логики модели внутри: всё, что решает, добавлять ли товар,
+ * решается здесь, на сервере.
  */
 
-export type ToolContext = { sessionId: string };
+export type ToolContext = {
+  sessionId: string;
+  /** Сырая последняя реплика пользователя. Сохраняется сервером, модель на неё не влияет. */
+  lastUserMessage: string;
+  /** Момент начала обработки текущей реплики — граница «прошлый ход / этот ход». */
+  turnStartedAt: string;
+};
+
 export type ToolResult = { ok: boolean; data: Record<string, unknown>; summary: string };
 
+const money = (n: number) => `${n.toLocaleString("ru-RU")} ₸`;
+
 // --------------------------------------------------------------------------
-// 1. search_catalog
+// Матчер согласия — раздел 6, пункт 4
+// --------------------------------------------------------------------------
+
+/**
+ * ВНИМАНИЕ: `\b` в JavaScript опирается на `\w`, то есть на латиницу.
+ * `/\bда\b/` по русскому тексту работает не так, как выглядит. Поэтому
+ * текст разбирается на слова, а не матчится регулярками с границами.
+ */
+const AFFIRM = new Set([
+  "да", "ага", "угу", "ок", "окей", "ok", "okay", "yes", "хорошо", "хорошо",
+  "давай", "давайте", "добавь", "добавьте", "добавляй", "подтверждаю",
+  "беру", "берем", "берём", "согласен", "согласна", "верно", "точно", "именно", "+",
+]);
+
+const NEGATE = new Set([
+  "не", "нет", "нельзя", "отмена", "отмени", "отменить", "отставить",
+  "стоп", "погоди", "подожди", "рано", "пока", "неа",
+]);
+
+const CONDITIONAL = new Set(["если", "когда", "вдруг", "может", "наверное"]);
+
+/** Консервативно: сомнительное трактуем как отказ. */
+export function isAffirmative(raw: string): boolean {
+  const text = (raw || "").toLowerCase().trim();
+  if (!text) return false;
+  if (text.includes("?")) return false; // вопрос — не согласие
+
+  const words = text.split(/[^a-zа-яё0-9+]+/i).filter(Boolean);
+  if (words.length === 0) return false;
+  if (words.length > 12) return false; // длинная реплика — это не «да»
+
+  if (words.some((w) => NEGATE.has(w))) return false;
+  if (words.some((w) => CONDITIONAL.has(w))) return false;
+
+  return words.some((w) => AFFIRM.has(w));
+}
+
+// --------------------------------------------------------------------------
+// Схемы
 // --------------------------------------------------------------------------
 
 const SearchArgs = z.object({
-  query: z.string().max(120).optional(),
-  category: z.enum(["ноутбуки", "наушники", "смартфоны", "аксессуары", "мониторы"]).optional(),
-  max_price: z.number().int().positive().optional(),
-  min_rating: z.number().min(0).max(5).optional(),
-  in_stock_only: z.boolean().optional(),
-  sort_by: z.enum(["relevance", "price_asc", "price_desc", "rating"]).optional(),
-  limit: z.number().int().min(1).max(8).optional(),
+  query: z.string().min(1).max(160),
+  category: z.string().max(80).optional(),
 });
+const SkuArgs = z.object({ sku: z.string().min(1).max(60) });
+const TermsArgs = z.object({ topic: z.enum(["payment", "delivery", "min_order", "pickup", "all"]) });
+const ProposeArgs = z.object({
+  sku: z.string().min(1).max(60),
+  qty: z.number().int().min(1).max(999),
+});
+const ConfirmArgs = z.object({ proposalId: z.string().min(1).max(64) });
+const NoArgs = z.object({}).passthrough();
 
 // --------------------------------------------------------------------------
-// 2. update_cart
+// Описания для модели
 // --------------------------------------------------------------------------
 
-const CartArgs = z
-  .object({
-    action: z.enum(["add", "remove", "set_qty", "clear", "view"]),
-    product_id: z.string().optional(),
-    qty: z.number().int().min(0).max(10).optional(),
-  })
-  .refine((a) => a.action === "clear" || a.action === "view" || !!a.product_id, {
-    message: "product_id обязателен для add / remove / set_qty",
-    path: ["product_id"],
-  });
-
-// --------------------------------------------------------------------------
-// 3. manage_order
-// --------------------------------------------------------------------------
-
-const OrderArgs = z
-  .object({
-    action: z.enum(["place", "list", "status", "return"]),
-    order_id: z.string().optional(),
-    reason: z.string().max(200).optional(),
-  })
-  .refine((a) => a.action !== "return" || (!!a.order_id && !!a.reason), {
-    message: "для возврата нужны order_id и reason",
-    path: ["order_id"],
-  });
-
-// --------------------------------------------------------------------------
-
-/** То, что видит модель. Описания намеренно подробные — это дешевле, чем чинить промпт в день Х. */
 export const TOOL_SPECS: ToolSpec[] = [
   {
     name: "search_catalog",
     description:
-      "Найти товары в каталоге магазина. Используй для подбора и для сравнения: " +
-      "запроси 2-4 позиции и сравни их по цене, рейтингу и характеристикам. " +
-      "Никогда не выдумывай товары — показывай только то, что вернул этот инструмент.",
+      "Найти товары в каталоге по свободному запросу. Возвращает до 5 позиций: артикул, название, цену, наличие. " +
+      "Любые сведения о товарах бери только отсюда и из get_product. Не выдумывай артикулы.",
     parameters: {
       type: "object",
       properties: {
-        query: { type: "string", description: "свободный текст: бренд, назначение, ключевое слово" },
-        category: {
-          type: "string",
-          enum: ["ноутбуки", "наушники", "смартфоны", "аксессуары", "мониторы"],
-          description: "сузить категорию, если она понятна из запроса",
-        },
-        max_price: { type: "integer", description: "максимальная цена в тенге" },
-        min_rating: { type: "number", description: "минимальный рейтинг, 0-5" },
-        in_stock_only: { type: "boolean", description: "только то, что есть на складе" },
-        sort_by: { type: "string", enum: ["relevance", "price_asc", "price_desc", "rating"] },
-        limit: { type: "integer", description: "сколько позиций вернуть, 1-8; для сравнения бери 3" },
+        query: { type: "string", description: "что ищет клиент: тип изделия, бренд, номинал" },
+        category: { type: "string", description: "необязательное сужение по категории" },
       },
-      required: [],
+      required: ["query"],
       additionalProperties: false,
     },
   },
   {
-    name: "update_cart",
+    name: "get_product",
     description:
-      "Изменить корзину или посмотреть её. product_id берётся строго из результатов search_catalog. " +
-      "После изменения всегда возвращается полная корзина — пересказывай пользователю итоговую сумму.",
+      "Полная карточка товара по артикулу: технические характеристики, сертификат, цена, остатки по складам. " +
+      "Вызывай, когда клиент спрашивает про конкретную позицию, наличие, характеристики или сертификат.",
     parameters: {
       type: "object",
-      properties: {
-        action: { type: "string", enum: ["add", "remove", "set_qty", "clear", "view"] },
-        product_id: { type: "string", description: "id товара из search_catalog, например p-102" },
-        qty: { type: "integer", description: "количество; для set_qty обязательно, для add по умолчанию 1" },
-      },
-      required: ["action"],
+      properties: { sku: { type: "string", description: "артикул из search_catalog" } },
+      required: ["sku"],
       additionalProperties: false,
     },
   },
   {
-    name: "manage_order",
+    name: "find_alternatives",
     description:
-      "Оформить заказ из корзины (place), показать заказы (list), посмотреть один заказ (status) " +
-      "или оформить возврат (return). Возврат требует order_id и причину. " +
-      "Перед place убедись, что пользователь подтвердил состав корзины.",
+      "Подобрать аналоги для позиции, которой нет в наличии. У каждого аналога есть поле reason — " +
+      "готовое обоснование подбора. Обязательно перескажи его клиенту: почему предложен именно этот аналог.",
+    parameters: {
+      type: "object",
+      properties: { sku: { type: "string", description: "артикул отсутствующей позиции" } },
+      required: ["sku"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_terms",
+    description: "Условия покупки: оплата, доставка, минимальная партия, самовывоз.",
     parameters: {
       type: "object",
       properties: {
-        action: { type: "string", enum: ["place", "list", "status", "return"] },
-        order_id: { type: "string", description: "например ORD-1A2B3C" },
-        reason: { type: "string", description: "причина возврата словами пользователя" },
+        topic: { type: "string", enum: ["payment", "delivery", "min_order", "pickup", "all"] },
       },
-      required: ["action"],
+      required: ["topic"],
       additionalProperties: false,
     },
+  },
+  {
+    name: "propose_add",
+    description:
+      "Предложить добавить товар в корзину. КОРЗИНУ НЕ МЕНЯЕТ. Возвращает proposalId. " +
+      "Вызывай всегда, когда клиент выражает намерение купить. После вызова покажи клиенту " +
+      "название, количество и цену и спроси подтверждение.",
+    parameters: {
+      type: "object",
+      properties: {
+        sku: { type: "string", description: "артикул" },
+        qty: { type: "integer", description: "количество" },
+      },
+      required: ["sku", "qty"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "confirm_add",
+    description:
+      "Добавить в корзину по ранее выданному proposalId. Вызывай ТОЛЬКО если клиент в своей последней " +
+      "реплике явно согласился («да», «добавь», «подтверждаю»). Сервер проверяет это независимо и " +
+      "откажет, если согласия не было. Никогда не вызывай сразу после propose_add в том же ответе.",
+    parameters: {
+      type: "object",
+      properties: { proposalId: { type: "string" } },
+      required: ["proposalId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_cart",
+    description: "Текущее содержимое корзины: позиции, количества, сумма.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    name: "get_cart_link",
+    description: "Прямая ссылка на страницу корзины с актуальным состоянием. Давай её после добавления товара.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
   },
 ];
 
-const money = (n: number) => `${n.toLocaleString("ru-RU")} ₸`;
+// --------------------------------------------------------------------------
+// Представление товара для модели
+// --------------------------------------------------------------------------
 
-/** В модель уходит урезанная карточка товара — меньше токенов, меньше поводов галлюцинировать. */
-function slim(p: Product) {
+function brief(p: Product) {
   return {
-    id: p.id,
-    title: p.title,
-    brand: p.brand,
-    category: p.category,
+    sku: p.sku,
+    name: p.name,
     price: p.price,
-    rating: p.rating,
-    reviews: p.reviews,
-    stock: p.stock,
-    delivery_days: p.delivery_days,
-    return_window_days: p.return_window_days,
-    specs: p.specs,
+    status: p.status,
+    available: p.available,
   };
 }
 
-async function runSearch(args: z.infer<typeof SearchArgs>): Promise<ToolResult> {
-  const found = await searchProducts(args);
+function full(p: Product) {
   return {
-    ok: true,
-    data: { products: found.map(slim), count: found.length },
-    summary: found.length ? `найдено ${found.length}: ${found.map((p) => p.title).join(", ")}` : "ничего не найдено",
+    sku: p.sku,
+    name: p.name,
+    brand: p.brand,
+    category: p.categoryTitle || p.category,
+    price: p.price,
+    status: p.status,
+    available: p.available,
+    minOrder: p.minOrder,
+    // Характеристики — единственный источник чисел (раздел 12.2).
+    specs: Object.fromEntries(Object.entries(p.specs).map(([k, v]) => [labelSpec(k), v])),
+    stock: p.stock.filter((s) => s.qty > 0).map((s) => ({ склад: s.name, остаток: s.qty })),
+    certificate: p.certificate
+      ? { title: p.certificate.title, url: p.certificate.url, demo: p.certificate.demo }
+      : null,
+    url: p.url,
+    // Описание даётся как текст и НЕ является источником характеристик.
+    description_text_only: p.description?.slice(0, 600) ?? null,
   };
 }
 
-async function runCart(args: z.infer<typeof CartArgs>, ctx: ToolContext): Promise<ToolResult> {
-  const { sessionId } = ctx;
+// --------------------------------------------------------------------------
+// Исполнение
+// --------------------------------------------------------------------------
 
-  if (args.action === "clear") {
-    await clearCart(sessionId);
-    return { ok: true, data: { cart: await getCart(sessionId) }, summary: "корзина очищена" };
+async function runPropose(a: z.infer<typeof ProposeArgs>, ctx: ToolContext): Promise<ToolResult> {
+  const p = await getProduct(a.sku);
+  if (!p) {
+    return { ok: false, data: { error: `артикул ${a.sku} не найден; сначала вызови search_catalog` }, summary: `нет такого артикула: ${a.sku}` };
   }
-
-  if (args.action !== "view") {
-    const product = await getProduct(args.product_id!);
-    if (!product) {
-      return {
-        ok: false,
-        data: { error: `товар ${args.product_id} не найден; сначала вызови search_catalog` },
-        summary: `товар ${args.product_id} не найден`,
-      };
-    }
-    if (args.action !== "remove" && product.stock <= 0) {
-      return {
-        ok: false,
-        data: { error: `«${product.title}» нет на складе`, product: slim(product) },
-        summary: `${product.title}: нет на складе`,
-      };
-    }
-
-    const cart = await getCart(sessionId);
-    const current = cart.lines.find((l) => l.product_id === product.id)?.qty ?? 0;
-    const next =
-      args.action === "add" ? current + (args.qty ?? 1)
-      : args.action === "remove" ? 0
-      : (args.qty ?? 1);
-
-    if (next > product.stock) {
-      return {
-        ok: false,
-        data: { error: `на складе только ${product.stock} шт.`, product: slim(product) },
-        summary: `${product.title}: на складе ${product.stock}`,
-      };
-    }
-
-    await setCartQty(sessionId, product.id, next);
-    const updated = await getCart(sessionId);
+  if (p.available <= 0) {
     return {
-      ok: true,
-      data: { cart: updated, changed: { product_id: product.id, title: product.title, qty: next } },
-      summary: `${args.action === "remove" ? "убрал" : "в корзине"} ${product.title} ×${next}, итого ${money(updated.total)}`,
+      ok: false,
+      data: { error: `«${p.name}» нет в наличии; предложи аналоги через find_alternatives`, sku: p.sku },
+      summary: `${p.name}: нет в наличии`,
     };
   }
 
-  const cart = await getCart(sessionId);
-  return { ok: true, data: { cart }, summary: `в корзине ${cart.count} шт. на ${money(cart.total)}` };
+  const proposal = await createProposal(ctx.sessionId, p.sku, a.qty);
+  return {
+    ok: true,
+    data: {
+      proposalId: proposal.id,
+      sku: p.sku,
+      name: p.name,
+      qty: a.qty,
+      price: p.price,
+      lineTotal: p.price * Math.min(a.qty, p.available),
+      available: p.available,
+      minOrder: p.minOrder,
+      note: a.qty > p.available
+        ? `запрошено ${a.qty}, в наличии ${p.available} — при подтверждении добавится ${p.available}`
+        : null,
+      requires_confirmation: "корзина не изменена; нужен явный ответ клиента",
+    },
+    summary: `предложено: ${p.name} ×${a.qty} по ${money(p.price)} (ожидает подтверждения)`,
+  };
 }
 
-async function runOrder(args: z.infer<typeof OrderArgs>, ctx: ToolContext): Promise<ToolResult> {
-  const { sessionId } = ctx;
-
-  if (args.action === "place") {
-    try {
-      const order = await placeOrder(sessionId);
-      return {
-        ok: true,
-        data: { order, cart: await getCart(sessionId) },
-        summary: `заказ ${order.id} на ${money(order.total)}, доставка ${order.eta_days} дн.`,
-      };
-    } catch (e) {
-      if ((e as Error).message === "EMPTY_CART") {
-        return { ok: false, data: { error: "корзина пуста — сначала добавь товар" }, summary: "корзина пуста" };
-      }
-      throw e;
-    }
+async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Promise<ToolResult> {
+  const proposal = await getProposal(ctx.sessionId, a.proposalId);
+  if (!proposal) {
+    return { ok: false, data: { error: "предложение не найдено в этой сессии" }, summary: "предложение не найдено" };
   }
 
-  if (args.action === "return") {
-    try {
-      const order = await requestReturn(sessionId, args.order_id!, args.reason!);
-      return {
-        ok: true,
-        data: { order, orders: await listOrders(sessionId) },
-        summary: `возврат по ${order.id}: ${args.reason}`,
-      };
-    } catch (e) {
-      const msg = (e as Error).message;
-      const human =
-        msg === "ORDER_NOT_FOUND" ? `заказ ${args.order_id} не найден; вызови manage_order с action=list`
-        : msg === "ALREADY_RETURNING" ? "по этому заказу возврат уже оформлен"
-        : msg;
-      return { ok: false, data: { error: human, orders: await listOrders(sessionId) }, summary: human };
-    }
+  // Защита 1: предложение должно быть создано в предыдущем ходу.
+  // Иначе модель могла бы в одном ответе вызвать propose_add и сразу
+  // confirm_add, подставив под проверку ту же реплику клиента.
+  if (proposal.createdAt >= ctx.turnStartedAt) {
+    return {
+      ok: false,
+      data: { error: "предложение только что создано. Сначала покажи его клиенту и дождись ответа — подтвердить в этом же ответе нельзя." },
+      summary: "отказ: подтверждение в том же ходу",
+    };
   }
 
-  const orders = await listOrders(sessionId);
-  if (args.action === "status" && args.order_id) {
-    const one = orders.find((o) => o.id.toLowerCase() === args.order_id!.toLowerCase());
-    return one
-      ? { ok: true, data: { order: one }, summary: `${one.id}: ${one.status}` }
-      : { ok: false, data: { error: `заказ ${args.order_id} не найден`, orders }, summary: "заказ не найден" };
+  // Защита 2: согласие проверяется по сырой реплике клиента, а не по словам модели.
+  if (!isAffirmative(ctx.lastUserMessage)) {
+    return {
+      ok: false,
+      data: { error: "клиент не подтвердил добавление явно. Переспроси и дождись однозначного ответа." },
+      summary: "отказ: явного согласия не было",
+    };
   }
-  return { ok: true, data: { orders }, summary: `заказов: ${orders.length}` };
+
+  const res = await consumeProposal(ctx.sessionId, a.proposalId);
+  if (!res.ok) {
+    const human: Record<string, string> = {
+      NOT_FOUND: "предложение не найдено",
+      ALREADY_USED: "это предложение уже использовано; создай новое через propose_add",
+      NO_STOCK: "товара не осталось в наличии",
+      PRODUCT_GONE: "товар пропал из каталога",
+    };
+    return { ok: false, data: { error: human[res.error] }, summary: human[res.error] };
+  }
+
+  return {
+    ok: true,
+    data: {
+      cart: res.cart,
+      added: res.added,
+      capped: res.capped,
+      availableQty: res.availableQty,
+      note: res.capped
+        ? `добавлено только ${res.added.qty} шт. — это весь доступный остаток. Обязательно скажи об этом клиенту.`
+        : null,
+    },
+    summary: `в корзину: ${res.added.name} ×${res.added.qty}, итого ${money(res.cart.total)}`,
+  };
 }
 
 export type ToolOutcome =
   | { kind: "ok"; result: ToolResult }
   | { kind: "invalid_args"; message: string };
 
-/**
- * Валидирует аргументы и исполняет инструмент.
- * Невалидные аргументы — не исключение, а отдельный исход: цикл отдаст
- * модели текст ошибки и даст ей переписать вызов.
- */
 export async function executeTool(name: string, rawArgs: string, ctx: ToolContext): Promise<ToolOutcome> {
   let parsed: unknown;
   try {
     parsed = rawArgs.trim() ? JSON.parse(rawArgs) : {};
   } catch {
-    return { kind: "invalid_args", message: `аргументы не являются корректным JSON: ${rawArgs.slice(0, 200)}` };
+    return { kind: "invalid_args", message: `аргументы не JSON: ${rawArgs.slice(0, 160)}` };
   }
-
   const describe = (issues: z.ZodIssue[]) =>
     issues.map((i) => `${i.path.join(".") || "(корень)"}: ${i.message}`).join("; ");
 
@@ -281,22 +319,93 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
     case "search_catalog": {
       const v = SearchArgs.safeParse(parsed);
       if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
-      return { kind: "ok", result: await runSearch(v.data) };
+      const items = await searchCatalog(v.data.query, v.data.category);
+      return {
+        kind: "ok",
+        result: {
+          ok: true,
+          data: { products: items.map(brief), count: items.length },
+          summary: items.length ? `найдено ${items.length}: ${items.map((p) => p.sku).join(", ")}` : "ничего не найдено",
+        },
+      };
     }
-    case "update_cart": {
-      const v = CartArgs.safeParse(parsed);
+
+    case "get_product": {
+      const v = SkuArgs.safeParse(parsed);
       if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
-      return { kind: "ok", result: await runCart(v.data, ctx) };
+      const p = await getProduct(v.data.sku);
+      return {
+        kind: "ok",
+        result: p
+          ? { ok: true, data: { product: full(p) }, summary: `${p.sku}: ${p.status === "in_stock" ? `в наличии ${p.available} шт.` : "нет в наличии"}` }
+          : { ok: false, data: { error: `артикул ${v.data.sku} не найден` }, summary: "артикул не найден" },
+      };
     }
-    case "manage_order": {
-      const v = OrderArgs.safeParse(parsed);
+
+    case "find_alternatives": {
+      const v = SkuArgs.safeParse(parsed);
       if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
-      return { kind: "ok", result: await runOrder(v.data, ctx) };
+      const { base, items } = await findAlternatives(v.data.sku);
+      if (!base) {
+        return { kind: "ok", result: { ok: false, data: { error: `артикул ${v.data.sku} не найден` }, summary: "артикул не найден" } };
+      }
+      return {
+        kind: "ok",
+        result: {
+          ok: items.length > 0,
+          data: {
+            base: brief(base),
+            alternatives: items.map((a) => ({ ...brief(a), reason: a.reason })),
+            instruction: "перескажи reason клиенту — обоснование подбора обязательно",
+          },
+          summary: items.length ? `аналогов: ${items.length} (${items.map((a) => a.sku).join(", ")})` : "аналогов не нашлось",
+        },
+      };
     }
+
+    case "get_terms": {
+      const v = TermsArgs.safeParse(parsed);
+      if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
+      const terms = getTerms(v.data.topic);
+      return { kind: "ok", result: { ok: true, data: { terms }, summary: `условия: ${v.data.topic}` } };
+    }
+
+    case "propose_add": {
+      const v = ProposeArgs.safeParse(parsed);
+      if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
+      return { kind: "ok", result: await runPropose(v.data, ctx) };
+    }
+
+    case "confirm_add": {
+      const v = ConfirmArgs.safeParse(parsed);
+      if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
+      return { kind: "ok", result: await runConfirm(v.data, ctx) };
+    }
+
+    case "get_cart": {
+      NoArgs.safeParse(parsed);
+      const cart = await getCart(ctx.sessionId);
+      return { kind: "ok", result: { ok: true, data: { cart }, summary: `в корзине ${cart.count} шт. на ${money(cart.total)}` } };
+    }
+
+    case "get_cart_link": {
+      NoArgs.safeParse(parsed);
+      const cart = await getCart(ctx.sessionId);
+      const link = `/cart?session=${encodeURIComponent(ctx.sessionId)}`;
+      return {
+        kind: "ok",
+        result: {
+          ok: true,
+          data: { url: link, itemsCount: cart.count, total: cart.total },
+          summary: `ссылка на корзину (${cart.count} шт.)`,
+        },
+      };
+    }
+
     default:
       return {
         kind: "invalid_args",
-        message: `инструмента «${name}» не существует. Доступны: ${TOOL_SPECS.map((t) => t.name).join(", ")}`,
+        message: `инструмента «${name}» нет. Доступны: ${TOOL_SPECS.map((t) => t.name).join(", ")}`,
       };
   }
 }

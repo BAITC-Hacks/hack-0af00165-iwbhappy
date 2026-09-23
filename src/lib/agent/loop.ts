@@ -1,5 +1,5 @@
 import { CONFIG } from "../config";
-import { getCart, listOrders, type Cart, type Order } from "../db";
+import { getCart, type Cart } from "../db";
 import { completeStream } from "../llm/client";
 import { bridgeTokens } from "./bridge";
 import type { Msg } from "../llm/types";
@@ -23,7 +23,7 @@ export type AgentEvent =
   | { type: "tool_call"; id: string; name: string; args: unknown }
   | { type: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number }
   | { type: "token"; text: string }
-  | { type: "state"; cart: Cart; orders: Order[] }
+  | { type: "state"; cart: Cart }
   | { type: "history"; messages: Msg[] }
   | { type: "done"; traceId: string; steps: number; ms: number; source: "live" | "mock"; model: string }
   | { type: "error"; message: string };
@@ -35,12 +35,20 @@ export type AgentInput = {
   message: string;
 };
 
-const CART_TOUCHING = new Set(["update_cart", "manage_order"]);
+// Корзину меняет ровно один инструмент — это и есть инвариант раздела 6.
+const CART_TOUCHING = new Set(["confirm_add"]);
 
 export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, void, unknown> {
   const traceId = newTraceId();
   const startedAt = Date.now();
-  const ctx = { sessionId: input.sessionId };
+  // Сырую реплику клиента и границу хода фиксирует сервер. Инструмент
+  // confirm_add опирается на них, а не на то, что скажет модель.
+  const turnStartedAt = new Date().toISOString();
+  const ctx = {
+    sessionId: input.sessionId,
+    lastUserMessage: input.message,
+    turnStartedAt,
+  };
 
   const messages: Msg[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -126,7 +134,7 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
       }
 
       if (touchedState) {
-        yield { type: "state", cart: await getCart(input.sessionId), orders: await listOrders(input.sessionId) };
+        yield { type: "state", cart: await getCart(input.sessionId) };
       }
     }
 
@@ -141,7 +149,7 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
 
   // Финальное состояние отдаём всегда — интерфейс не должен зависеть
   // от того, угадали ли мы, какой инструмент что поменял.
-  yield { type: "state", cart: await getCart(input.sessionId), orders: await listOrders(input.sessionId) };
+  yield { type: "state", cart: await getCart(input.sessionId) };
   yield { type: "history", messages: messages.slice(deltaFrom) };
   yield { type: "done", traceId, steps, ms: Date.now() - startedAt, source, model };
 
