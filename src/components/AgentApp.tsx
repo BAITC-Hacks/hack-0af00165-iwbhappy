@@ -5,7 +5,7 @@ import type { AgentEvent } from "@/lib/agent/loop";
 import type { Cart } from "@/lib/db";
 import type { Msg } from "@/lib/llm/types";
 import CartPanel from "./CartPanel";
-import ConfirmCard, { type ProposalView } from "./ConfirmCard";
+import ConfirmCard, { type ProposalLineView, type ProposalView } from "./ConfirmCard";
 import ProductGrid, { type ProductPreview } from "./ProductGrid";
 
 type ChatMessage = {
@@ -13,6 +13,7 @@ type ChatMessage = {
   kind: "message";
   role: "user" | "assistant" | "error" | "notice";
   content: string;
+  imageUrl?: string;
 };
 
 type ProposalMessage = {
@@ -72,22 +73,21 @@ function readProposal(value: unknown): ProposalView | null {
   const proposalId = typeof value.proposalId === "string" ? value.proposalId : "";
   const sku = typeof value.sku === "string" ? value.sku : "";
   const name = typeof value.name === "string" ? value.name : "";
-  const numericKeys = ["qty", "requestedQty", "price", "lineTotal", "available", "minOrder"] as const;
+  const numericKeys = ["qty", "price", "lineTotal", "available", "minOrder"] as const;
   if (!proposalId || !sku || !name || numericKeys.some((key) => !Number.isFinite(Number(value[key])))) {
     return null;
   }
 
+  const item: ProposalLineView = {
+    sku, name, qty: Number(value.qty), requestedQty: Number(value.requestedQty ?? value.qty),
+    price: Number(value.price), lineTotal: Number(value.lineTotal),
+    available: Number(value.available), minOrder: Number(value.minOrder),
+  };
   return {
     kind: "proposal",
     proposalId,
-    sku,
-    name,
-    qty: Number(value.qty),
-    requestedQty: Number(value.requestedQty),
-    price: Number(value.price),
-    lineTotal: Number(value.lineTotal),
-    available: Number(value.available),
-    minOrder: Number(value.minOrder),
+    items: [item],
+    total: item.lineTotal,
   };
 }
 
@@ -96,6 +96,7 @@ export default function AgentApp() {
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const [flashSkus, setFlashSkus] = useState<string[]>([]);
@@ -110,6 +111,7 @@ export default function AgentApp() {
   const cartRef = useRef<Cart>(EMPTY_CART);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -193,7 +195,7 @@ export default function AgentApp() {
   }, []);
 
   const send = useCallback(
-    async (rawMessage: string) => {
+    async (rawMessage: string, imageUrl?: string) => {
       const message = rawMessage.trim();
       if (!message || busy || !sessionId) return;
 
@@ -204,7 +206,7 @@ export default function AgentApp() {
       setTrace([]);
       setChatItems((items) => [
         ...items,
-        { id: makeId("user"), kind: "message", role: "user", content: message },
+        { id: makeId("user"), kind: "message", role: "user", content: message, ...(imageUrl ? { imageUrl } : {}) },
         { id: assistantId, kind: "message", role: "assistant", content: "" },
       ]);
 
@@ -322,6 +324,8 @@ export default function AgentApp() {
         error?: string;
         cart?: Cart;
         added?: { name: string; qty: number };
+        lines?: { sku: string; name: string; added: number; capped: boolean }[];
+        addedTotal?: number;
         capped?: boolean;
       };
 
@@ -335,14 +339,83 @@ export default function AgentApp() {
           id: makeId("notice"),
           kind: "message",
           role: "notice",
-          content: data.capped
-            ? `Добавлено ${data.added?.qty ?? proposal.qty} шт. — это весь доступный остаток.`
-            : `${data.added?.name ?? proposal.name} добавлен в корзину: ${data.added?.qty ?? proposal.qty} шт.`,
+          content: data.lines?.length
+            ? `Добавлено в корзину:\n${data.lines.map((line) => `• ${line.name} (${line.sku}) — ${line.added} шт.${line.capped ? " — весь доступный остаток" : ""}`).join("\n")}\nИтого добавлено: ${data.addedTotal ?? 0} шт.`
+            : data.capped
+              ? `Добавлено ${data.added?.qty ?? proposal.items[0]?.qty ?? 0} шт. — это весь доступный остаток.`
+              : `${data.added?.name ?? proposal.items[0]?.name ?? "Товар"} добавлен в корзину: ${data.added?.qty ?? proposal.items[0]?.qty ?? 0} шт.`,
         },
       ]);
     },
     [applyCart, dismissProposal, sessionId],
   );
+
+  const uploadFile = useCallback(async (file: File) => {
+    if (!sessionId || busy || uploading) return;
+    setUploading(true);
+    const form = new FormData();
+    form.set("file", file);
+    form.set("sessionId", sessionId);
+    try {
+      const response = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await response.json().catch(() => ({})) as {
+        error?: string;
+        kind?: string;
+        proposalId?: string;
+        matched?: { sku: string; name: string; price: number; qty: number; available: number; status: string }[];
+        unmatched?: { article: string; qty: number }[];
+        skipped?: number;
+        message?: string;
+      };
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+
+      if (data.kind === "photo") {
+        if (!data.message) throw new Error("Сервер не вернул описание фотографии.");
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        const mime = file.type || (file.name.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg");
+        void send(data.message, `data:${mime};base64,${btoa(binary)}`);
+        return;
+      }
+
+      if (data.kind !== "spec") throw new Error("Неизвестный ответ сервера загрузки.");
+      const matched = data.matched ?? [];
+      const unmatched = data.unmatched ?? [];
+      const skipped = data.skipped ?? 0;
+      if (data.proposalId && matched.length) {
+        const items: ProposalLineView[] = matched.map((item) => ({
+          sku: item.sku,
+          name: item.name,
+          qty: item.qty,
+          requestedQty: item.qty,
+          price: item.price,
+          lineTotal: item.price * item.qty,
+          available: item.available,
+          minOrder: 1,
+        }));
+        setChatItems((current) => [...current, {
+          id: `proposal_${data.proposalId}`,
+          kind: "proposal",
+          proposal: { kind: "proposal", proposalId: data.proposalId!, items, total: items.reduce((sum, item) => sum + item.lineTotal, 0) },
+        }]);
+      }
+
+      const notes: string[] = [];
+      if (unmatched.length) notes.push(`Не нашли в каталоге: ${unmatched.map((row) => `${row.article} (${row.qty} шт.)`).join(", ")}.`);
+      if (skipped > 0) notes.push(`Пропущено строк при разборе файла: ${skipped}.`);
+      if (!matched.length && !notes.length) notes.push("В файле не найдено позиций каталога.");
+      if (notes.length) setChatItems((current) => [...current, { id: makeId("notice"), kind: "message", role: "notice", content: notes.join("\n") }]);
+    } catch (error) {
+      setChatItems((current) => [...current, {
+        id: makeId("error"), kind: "message", role: "error",
+        content: `Не удалось загрузить файл: ${error instanceof Error ? error.message : String(error)}`,
+      }]);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [busy, send, sessionId, uploading]);
 
   const reset = useCallback(async () => {
     if (!sessionId || busy) return;
