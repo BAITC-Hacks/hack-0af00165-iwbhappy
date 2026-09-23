@@ -1,5 +1,6 @@
 [
   {
+    "id": 45357,
     "sku": "ярп4520",
     "name": "LED STARK 30W 2400Lm d98x180 4000K IP20 MEGALIGHT (20)",
     "rawName": "***LED STARK 30W 2400Lm d98x180 4000K IP20 MEGALIGHT (20)",
@@ -107,8 +108,9 @@
     "certificate": null
   },
   {
+    "id": 25397,
     "sku": "310100080_",
-    "name": "007886 Диф.авт. 1p+N 16А (30мА) 411002 Legrand (1)!!!",
+    "name": "007886 Диф.авт. 1p+N 16А (30мА) 411002 Legrand (1)",
     "rawName": "007886 Диф.авт. 1p+N 16А (30мА) 411002 Legrand (1)!!!",
     "category": "differentsialnye_ustroystva_uzo_avdt_vd",
     "categoryTitle": "",
@@ -214,6 +216,7 @@
     "certificate": null
   },
   {
+    "id": 58379,
     "sku": "010-002",
     "name": "УПп 60/40.1.1 со стыковочными узлами и винтами",
     "rawName": "010-002 УПп 60/40.1.1 со стыковочными узлами и винтами",
@@ -323,6 +326,7 @@
     "certificate": null
   },
   {
+    "id": 58380,
     "sku": "010-005",
     "name": "УПрк 97/50.1.1",
     "rawName": "010-005 УПрк 97/50.1.1",
@@ -392,6 +396,7 @@
     "certificate": null
   },
   {
+    "id": 58412,
     "sku": "020-007",
     "name": "Коробка для полых стен с мет. лапками и крышкой УПрк 97/50.1.2. (КМ-206)",
     "rawName": "020-007 Коробка для полых стен с мет. лапками и крышкой УПрк 97/50.1.2. (КМ-206)",
@@ -461,6 +466,7 @@
     "certificate": null
   },
   {
+    "id": 58368,
     "sku": "020-008",
     "name": "Коробка разв.107х107х53 г/к УПрк 110/45.2.2. (72 шт)",
     "rawName": "020-008 Коробка разв.107х107х53 г/к УПрк 110/45.2.2. (72 шт)",
@@ -530,6 +536,7 @@
     "certificate": null
   },
   {
+    "id": 58378,
     "sku": "020-108",
     "name": "Коробка распаячная для полых стен с пласт. Лапками и крышкой 110/50.2.2",
     "rawName": "020-108 Коробка распаячная для полых стен с пласт. Лапками и крышкой 110/50.2.2",
@@ -599,6 +606,7 @@
     "certificate": null
   },
   {
+    "id": 515279,
     "sku": "027004",
     "name": "АВ DRX125 MT 3ф 40А 10ka Legrand (1)",
     "rawName": "027004 АВ DRX125 MT 3ф 40А 10ka Legrand (1)",
@@ -716,6 +724,7 @@
     "certificate": null
   },
   {
+    "id": 515280,
     "sku": "027005",
     "name": "АВ DRX125 MT 3ф 50А 10ka Legrand (1)",
     "rawName": "027005 АВ DRX125 MT 3ф 50А 10ka Legrand (1)",
@@ -837,6 +846,7 @@
     }
   },
   {
+    "id": 515278,
     "sku": "027008",
     "name": "АВ DRX125 MT 3ф 100А 10ka Legrand (1)",
     "rawName": "027008 АВ DRX125 MT 3ф 100А 10ka Legrand (1)",
@@ -954,6 +964,7 @@
     }
   },
   {
+    "id": 515282,
     "sku": "027022",
     "name": "АВ DRX125 MT 3ф 25А 20ka Legrand (1)",
     "rawName": "027022 АВ DRX125 MT 3ф 25А 20ka Legrand (1)",
@@ -1066,6 +1077,7 @@
     "certificate": null
   },
   {
+    "id": 515283,
     "sku": "027024",
     "name": "АВ DRX125 MT 3ф 40А 20ka Legrand (1)",
     "rawName": "027024 АВ DRX125 MT 3ф 40А 20ka Legrand (1)",
@@ -1183,6 +1195,7 @@
     "certificate": null
   },
   {
+    "id": 515281,
     "sku": "027028",
     "name": "АВ DRX125 MT 3ф 100А 20ka Legrand (1)",
     "rawName": "027028 АВ DRX125 MT 3ф 100А 20ka Legrand (1)",
@@ -1300,6 +1313,7 @@
     "certificate": null
   },
   {
+    "id": 515290,
     "sku": "027100",
     "name": "АВ DRX250 MT 3ф 125А 18ka Legrand (1)",
     "rawName": "027100 АВ DRX250 MT 3ф 125А 18ka Legrand (1)",
@@ -1412,6 +1426,7 @@
     "certificate": null
   },
   {
+    "id": 515292,
     "sku": "027103",
     "name": "АВ DRX250 MT 3ф 200А 18ka Legrand (1)",
     "rawName": "027103 АВ DRX250 MT 3ф 200А 18ka Legrand (1)",
@@ -1529,6 +1544,7 @@
     }
   },
   {
+    "id": 515286,
     "sku": "027105",
     "name": "АВ DRX250 MT 3ф 250А 18ka Legrand (1)",
     "rawName": "027105 АВ DRX250 MT 3ф 250А 18ka Legrand (1)",
@@ -1641,6 +1657,7 @@
     "certificate": null
   },
   {
+    "id": 515287,
     "sku": "027112",
     "name": "АВ DRX250 MT 3ф 125А 25ka Legrand (1)",
     "rawName": "027112 АВ DRX250 MT 3ф 125А 25ka Legrand (1)",
@@ -1753,6 +1770,7 @@
     "certificate": null
   },
   {
+    "id": 515289,
     "sku": "027115",
     "name": "АВ DRX250 MT 3ф 200А 25ka Legrand (1)",
     "rawName": "027115 АВ DRX250 MT 3ф 200А 25ka Legrand (1)",
@@ -1870,6 +1888,7 @@
     "certificate": null
   },
   {
+    "id": 515293,
     "sku": "027117",
     "name": "АВ DRX250 MT 3ф 250А 25ka Legrand (1)",
     "rawName": "027117 АВ DRX250 MT 3ф 250А 25ka Legrand (1)",
@@ -1986,6 +2005,7 @@
     "certificate": null
   },
   {
+    "id": 515285,
     "sku": "027220",
     "name": "АВ DRX125 MT 3ф 63А 20ka Legrand (1)",
     "rawName": "027220 АВ DRX125 MT 3ф 63А 20ka Legrand (1)",
@@ -2102,6 +2122,7 @@
     "certificate": null
   },
   {
+    "id": 515291,
     "sku": "027228",
     "name": "АВ DRX250 MT 3ф 160А 18ka Legrand (1)",
     "rawName": "027228 АВ DRX250 MT 3ф 160А 18ka Legrand (1)",
@@ -2224,6 +2245,7 @@
     }
   },
   {
+    "id": 515288,
     "sku": "027230",
     "name": "АВ DRX250 MT 3ф 160А 25ka Legrand (1)",
     "rawName": "027230 АВ DRX250 MT 3ф 160А 25ka Legrand (1)",
@@ -2346,6 +2368,7 @@
     }
   },
   {
+    "id": 515277,
     "sku": "027255",
     "name": "АВ DRX125 MT 3ф 80А 10ka Legrand (1)",
     "rawName": "027255 АВ DRX125 MT 3ф 80А 10ka Legrand (1)",
@@ -2458,6 +2481,7 @@
     "certificate": null
   },
   {
+    "id": 515284,
     "sku": "027257",
     "name": "АВ DRX125 MT 3ф 80А 20ka Legrand (1)",
     "rawName": "027257 АВ DRX125 MT 3ф 80А 20ka Legrand (1)",
@@ -2579,8 +2603,9 @@
     }
   },
   {
+    "id": 19988,
     "sku": "151000197_",
-    "name": "09805 IL MX 250F 2D 21W 6500K OPPLE (1) !!!",
+    "name": "09805 IL MX 250F 2D 21W 6500K OPPLE (1)",
     "rawName": "09805 IL MX 250F 2D 21W 6500K OPPLE (1) !!!",
     "category": "nakladnye_lyuministsentnye_lbo_lpo_obn",
     "categoryTitle": "",
@@ -2691,8 +2716,9 @@
     }
   },
   {
+    "id": 25010,
     "sku": "151000198_",
-    "name": "09806 IL MX 305F 2D 38W 6500K OPPLE (1) !!!",
+    "name": "09806 IL MX 305F 2D 38W 6500K OPPLE (1)",
     "rawName": "09806 IL MX 305F 2D 38W 6500K OPPLE (1) !!!",
     "category": "nakladnye_lyuministsentnye_lbo_lpo_obn",
     "categoryTitle": "",
@@ -2803,6 +2829,7 @@
     }
   },
   {
+    "id": 35604,
     "sku": "RM35BA10",
     "name": "1 и 3 фазное реле контроля для насоса, 5А, 1 CO, 208...480VAC RM35BA10",
     "rawName": "1 и 3 фазное реле контроля для насоса, 5А, 1 CO, 208...480VAC RM35BA10",
@@ -2875,6 +2902,7 @@
     }
   },
   {
+    "id": 35819,
     "sku": "RM17UAS16",
     "name": "1-фазное реле контроля напряж, 5А, 1 CO, 20…80 V AC/DC RM17UAS16",
     "rawName": "1-фазное реле контроля напряж, 5А, 1 CO, 20…80 V AC/DC RM17UAS16",
@@ -2942,6 +2970,7 @@
     "certificate": null
   },
   {
+    "id": 35587,
     "sku": "RM17UBE16",
     "name": "1-фазное реле контроля напряж, 5А, 1 CO, 20…80 V AC/DC RM17UBE16",
     "rawName": "1-фазное реле контроля напряж, 5А, 1 CO, 20…80 V AC/DC RM17UBE16",
@@ -3009,6 +3038,7 @@
     "certificate": null
   },
   {
+    "id": 35563,
     "sku": "RM17UAS15",
     "name": "1-фазное реле контроля напряж, 5А, 1 CO, 65…260 V AC/DC RM17UAS15",
     "rawName": "1-фазное реле контроля напряж, 5А, 1 CO, 65…260 V AC/DC RM17UAS15",
@@ -3076,6 +3106,7 @@
     "certificate": null
   },
   {
+    "id": 35574,
     "sku": "RM17UBE15",
     "name": "1-фазное реле контроля напряж, 5А, 1 CO, 65…260 V AC/DC RM17UBE15",
     "rawName": "1-фазное реле контроля напряж, 5А, 1 CO, 65…260 V AC/DC RM17UBE15",
@@ -3143,6 +3174,7 @@
     "certificate": null
   },
   {
+    "id": 35585,
     "sku": "RM17UAS14",
     "name": "1-фазное реле контроля напряж, 5А, 1 CO, 9…15VDC RM17UAS14",
     "rawName": "1-фазное реле контроля напряж, 5А, 1 CO, 9…15VDC RM17UAS14",
@@ -3215,6 +3247,7 @@
     }
   },
   {
+    "id": 35609,
     "sku": "RM35UA12MW",
     "name": "1-фазное реле контроля напряж, 5А, 2 CO, диапазон изм 1-100 В, питание 24-240 V AC/DC RM35UA12MW",
     "rawName": "1-фазное реле контроля напряж, 5А, 2 CO, диапазон изм 1-100 В, питание 24-240 V AC/DC RM35UA12MW",
@@ -3287,6 +3320,7 @@
     }
   },
   {
+    "id": 35608,
     "sku": "RM35UA11MW",
     "name": "1-фазное реле контроля напряж, 5А, 2 CO, диапазон измер 0.05-5 В, питание 24-240 V AC/DC RM35UA11MW",
     "rawName": "1-фазное реле контроля напряж, 5А, 2 CO, диапазон измер 0.05-5 В, питание 24-240 V AC/DC RM35UA11MW",
@@ -3359,6 +3393,7 @@
     }
   },
   {
+    "id": 35610,
     "sku": "RM35UA13MW",
     "name": "1-фазное реле контроля напряж, 5А, 2 CO, диапазон измер 15-600 В, питание 24-240 V AC/DC RM35UA13MW",
     "rawName": "1-фазное реле контроля напряж, 5А, 2 CO, диапазон измер 15-600 В, питание 24-240 V AC/DC RM35UA13MW",
@@ -3431,6 +3466,7 @@
     }
   },
   {
+    "id": 35599,
     "sku": "RM22UA31MR",
     "name": "1-фазное реле контроля напряж, 8 A, 2 CO, 0.05…5 V AC/DC, 24…240 V AC/DC RM22UA31MR",
     "rawName": "1-фазное реле контроля напряж, 8 A, 2 CO, 0.05…5 V AC/DC, 24…240 V AC/DC RM22UA31MR",
@@ -3498,6 +3534,7 @@
     "certificate": null
   },
   {
+    "id": 35600,
     "sku": "RM22UA32MR",
     "name": "1-фазное реле контроля напряж, 8 A, 2 CO, 1…100 V AC/DC, 24…240 V AC/DC RM22UA32MR",
     "rawName": "1-фазное реле контроля напряж, 8 A, 2 CO, 1…100 V AC/DC, 24…240 V AC/DC RM22UA32MR",
@@ -3565,6 +3602,7 @@
     "certificate": null
   },
   {
+    "id": 35573,
     "sku": "RM22UA33MR",
     "name": "1-фазное реле контроля напряж, 8 A, 2 CO, 15…500 V AC/DC, 24…240 V AC/DC RM22UA33MR",
     "rawName": "1-фазное реле контроля напряж, 8 A, 2 CO, 15…500 V AC/DC, 24…240 V AC/DC RM22UA33MR",
@@ -3632,6 +3670,7 @@
     "certificate": null
   },
   {
+    "id": 35601,
     "sku": "RM22UA33MT",
     "name": "1-фазное реле контроля напряж, 8 A, 2 CO, 15…500VAC, 380…415VAC RM22UA33MT",
     "rawName": "1-фазное реле контроля напряж, 8 A, 2 CO, 15…500VAC, 380…415VAC RM22UA33MT",
@@ -3699,6 +3738,7 @@
     "certificate": null
   },
   {
+    "id": 35581,
     "sku": "RM22UB34",
     "name": "1-фазное реле контроля напряж, 8 A, 2 CO, 80…300 V AC/DC, 110…240 V AC/DC RM22UB34",
     "rawName": "1-фазное реле контроля напряж, 8 A, 2 CO, 80…300 V AC/DC, 110…240 V AC/DC RM22UB34",
@@ -3766,6 +3806,7 @@
     "certificate": null
   },
   {
+    "id": 35598,
     "sku": "RM22UA23MR",
     "name": "1-фазное реле контроля повыш напр, 8 A, 2 CO, диап изм 15-500 V AC/DC, пит 24-240 V AC/DC RM22UA23MR",
     "rawName": "1-фазное реле контроля повыш напр, 8 A, 2 CO, диап изм 15-500 V AC/DC, пит 24-240 V AC/DC RM22UA23MR",
@@ -3833,6 +3874,7 @@
     "certificate": null
   },
   {
+    "id": 35596,
     "sku": "RM22UA21MR",
     "name": "1-фазное реле контроля повыш напряж, 8A, 2CO, диап изм 0.0-5 V AC/DC, пит 24-240 V AC/DC RM22UA21MR",
     "rawName": "1-фазное реле контроля повыш напряж, 8A, 2CO, диап изм 0.0-5 V AC/DC, пит 24-240 V AC/DC RM22UA21MR",
@@ -3900,6 +3942,7 @@
     "certificate": null
   },
   {
+    "id": 35597,
     "sku": "RM22UA22MR",
     "name": "1-фазное реле контроля повыш напряж, 8A, 2CO, диап изм 1-100 V AC/DC, пит 24-240 V AC/DC RM22UA22MR",
     "rawName": "1-фазное реле контроля повыш напряж, 8A, 2CO, диап изм 1-100 V AC/DC, пит 24-240 V AC/DC RM22UA22MR",
@@ -3967,6 +4010,7 @@
     "certificate": null
   },
   {
+    "id": 35589,
     "sku": "RM22JA31MR",
     "name": "1-фазное реле контроля тока, 4мА…1 A, 2 CO, 24…240 V AC/DC RM22JA31MR",
     "rawName": "1-фазное реле контроля тока, 4мА…1 A, 2 CO, 24…240 V AC/DC RM22JA31MR",
@@ -4034,6 +4078,7 @@
     "certificate": null
   },
   {
+    "id": 35572,
     "sku": "RM35JA32MW",
     "name": "1-фазное реле контроля тока, 5А, 2 CO, 0.15…15А, 24…240 V AC/DC RM35JA32MR",
     "rawName": "1-фазное реле контроля тока, 5А, 2 CO, 0.15…15А, 24…240 V AC/DC RM35JA32MR",
@@ -4106,6 +4151,7 @@
     }
   },
   {
+    "id": 35568,
     "sku": "RM35JA31MW",
     "name": "1-фазное реле контроля тока, 5А, 2 CO, 2…500мА, 24…240 V AC/DC RM35JA31MW",
     "rawName": "1-фазное реле контроля тока, 5А, 2 CO, 2…500мА, 24…240 V AC/DC RM35JA31MW",
@@ -4173,6 +4219,7 @@
     "certificate": null
   },
   {
+    "id": 35588,
     "sku": "RM22JA21MR",
     "name": "1-фазное реле контроля тока, 8 A, 2 CO, 24…240 V AC/DC RM22JA21MR",
     "rawName": "1-фазное реле контроля тока, 8 A, 2 CO, 24…240 V AC/DC RM22JA21MR",
@@ -4245,6 +4292,7 @@
     }
   },
   {
+    "id": 18945,
     "sku": "II-L90-1",
     "name": "11-Л-90 (устан.с/п) (100)",
     "rawName": "11-Л-90 (устан.с/п) (100)",
@@ -4354,6 +4402,7 @@
     "certificate": null
   },
   {
+    "id": 54323,
     "sku": "11006DEK",
     "name": "11006 BA 101 1P 16А х-ка B DEKraft",
     "rawName": "11006 BA 101 1P 16А х-ка B DEKraft",
@@ -4466,6 +4515,7 @@
     }
   },
   {
+    "id": 54345,
     "sku": "11122DEK",
     "name": "11122 ВА 101 3Р 2А хак-ка D DEKraft",
     "rawName": "11122 ВА 101 3Р 2А хак-ка D DEKraft",
@@ -4573,6 +4623,7 @@
     "certificate": null
   },
   {
+    "id": 54342,
     "sku": "11125DEK",
     "name": "11125 BA 101 3P 10А х-ка D DEKraft",
     "rawName": "11125 BA 101 3P 10А х-ка D DEKraft",
@@ -4685,6 +4736,7 @@
     }
   },
   {
+    "id": 54341,
     "sku": "11127DEK_",
     "name": "11127 BA 101 3P 20А х-ка D DEKraft",
     "rawName": "11127 BA 101 3P 20А х-ка D DEKraft",
@@ -4792,6 +4844,7 @@
     "certificate": null
   },
   {
+    "id": 54351,
     "sku": "11128DEK",
     "name": "11128 BA 101 3P 25A х-ка D DEKraft",
     "rawName": "11128 BA 101 3P 25A х-ка D DEKraft",
@@ -4899,6 +4952,7 @@
     "certificate": null
   },
   {
+    "id": 54340,
     "sku": "11129DEK",
     "name": "11129 BA 101 3P 32А х-ка D DEKraft",
     "rawName": "11129 BA 101 3P 32А х-ка D DEKraft",
@@ -5006,6 +5060,7 @@
     "certificate": null
   },
   {
+    "id": 54339,
     "sku": "11130DEK",
     "name": "11130 BA 101 3P 40А х-ка D DEKraft",
     "rawName": "11130 BA 101 3P 40А х-ка D DEKraft",
@@ -5118,6 +5173,7 @@
     }
   },
   {
+    "id": 54338,
     "sku": "11131DEK",
     "name": "11131 BA 101 3P 50А х-ка D DEKraft",
     "rawName": "11131 BA 101 3P 50А х-ка D DEKraft",
@@ -5225,8 +5281,9 @@
     "certificate": null
   },
   {
+    "id": 21182,
     "sku": "404029х",
-    "name": "11204 ВА 63 (1ф) 20А 404029 Legrand (10) !!!",
+    "name": "11204 ВА 63 (1ф) 20А 404029 Legrand (10)",
     "rawName": "11204 ВА 63 (1ф) 20А 404029 Legrand (10) !!!",
     "category": "modulnye_avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -5342,8 +5399,9 @@
     }
   },
   {
+    "id": 21185,
     "sku": "404033х",
-    "name": "11208 ВА 63 (1ф) 50А 404033 Legrand (10) !!!",
+    "name": "11208 ВА 63 (1ф) 50А 404033 Legrand (10)",
     "rawName": "11208 ВА 63 (1ф) 50А 404033 Legrand (10) !!!",
     "category": "modulnye_avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -5459,8 +5517,9 @@
     }
   },
   {
+    "id": 24160,
     "sku": "404034х",
-    "name": "11209 ВА 63 (1ф) 63А 404034 Legrand (10) !!!",
+    "name": "11209 ВА 63 (1ф) 63А 404034 Legrand (10)",
     "rawName": "11209 ВА 63 (1ф) 63А 404034 Legrand (10) !!!",
     "category": "modulnye_avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -5571,8 +5630,9 @@
     "certificate": null
   },
   {
+    "id": 18157,
     "sku": "404057х",
-    "name": "11224 ВА 63 (3ф) 20А 404057 Legrand (1) !!!",
+    "name": "11224 ВА 63 (3ф) 20А 404057 Legrand (1)",
     "rawName": "11224 ВА 63 (3ф) 20А 404057 Legrand (1) !!!",
     "category": "modulnye_avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -5683,8 +5743,9 @@
     "certificate": null
   },
   {
+    "id": 25139,
     "sku": "404060х",
-    "name": "11227 ВА 63 (3ф) 40А 404060 Legrand (1) !!!",
+    "name": "11227 ВА 63 (3ф) 40А 404060 Legrand (1)",
     "rawName": "11227 ВА 63 (3ф) 40А 404060 Legrand (1) !!!",
     "category": "modulnye_avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -5795,8 +5856,9 @@
     "certificate": null
   },
   {
+    "id": 24164,
     "sku": "310100081_",
-    "name": "11450 УЗО ВД63 (2ф) 25А (30мА) 007888 Legrand (1)!!!",
+    "name": "11450 УЗО ВД63 (2ф) 25А (30мА) 007888 Legrand (1)",
     "rawName": "11450 УЗО ВД63 (2ф) 25А (30мА) 007888 Legrand (1)!!!",
     "category": "ustroystvo_differentsialnoy_zashchity",
     "categoryTitle": "",
@@ -5911,8 +5973,9 @@
     }
   },
   {
+    "id": 21049,
     "sku": "310100082_",
-    "name": "11450 УЗО ВД63 (2ф) 25А (30мА) 403000 Legrand (1) !!!",
+    "name": "11450 УЗО ВД63 (2ф) 25А (30мА) 403000 Legrand (1)",
     "rawName": "11450 УЗО ВД63 (2ф) 25А (30мА) 403000 Legrand (1) !!!",
     "category": "ustroystvo_differentsialnoy_zashchity",
     "categoryTitle": "",
@@ -6027,8 +6090,9 @@
     }
   },
   {
+    "id": 21190,
     "sku": "010400056_",
-    "name": "11450 УЗО ВД63 (2ф) 25А (30мА) Schn El (1) !!!",
+    "name": "11450 УЗО ВД63 (2ф) 25А (30мА) Schn El (1)",
     "rawName": "11450 УЗО ВД63 (2ф) 25А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6138,8 +6202,9 @@
     "certificate": null
   },
   {
+    "id": 18158,
     "sku": "010400058_",
-    "name": "11452 УЗО ВД63 (2ф) 40А (30мА) Schn El (1) !!!",
+    "name": "11452 УЗО ВД63 (2ф) 40А (30мА) Schn El (1)",
     "rawName": "11452 УЗО ВД63 (2ф) 40А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6249,8 +6314,9 @@
     "certificate": null
   },
   {
+    "id": 21191,
     "sku": "010400060_",
-    "name": "11455 УЗО ВД63 (2ф) 63А (30мА) Schn El (1) !!!",
+    "name": "11455 УЗО ВД63 (2ф) 63А (30мА) Schn El (1)",
     "rawName": "11455 УЗО ВД63 (2ф) 63А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6360,8 +6426,9 @@
     "certificate": null
   },
   {
+    "id": 18159,
     "sku": "010400061_",
-    "name": "11460 УЗО ВД63 (4ф) 25А (30мА) Schn El (1) !!!",
+    "name": "11460 УЗО ВД63 (4ф) 25А (30мА) Schn El (1)",
     "rawName": "11460 УЗО ВД63 (4ф) 25А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6471,8 +6538,9 @@
     "certificate": null
   },
   {
+    "id": 24163,
     "sku": "010400122_",
-    "name": "11463 УЗО ВД63 (4ф) 40А (30мА) Schn El (1) !!!",
+    "name": "11463 УЗО ВД63 (4ф) 40А (30мА) Schn El (1)",
     "rawName": "11463 УЗО ВД63 (4ф) 40А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6582,8 +6650,9 @@
     "certificate": null
   },
   {
+    "id": 18160,
     "sku": "010400123_",
-    "name": "11466 УЗО ВД63 (4ф) 63А (30мА) Schn El (1) !!!",
+    "name": "11466 УЗО ВД63 (4ф) 63А (30мА) Schn El (1)",
     "rawName": "11466 УЗО ВД63 (4ф) 63А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6693,8 +6762,9 @@
     "certificate": null
   },
   {
+    "id": 24165,
     "sku": "010400079_",
-    "name": "11472 УЗО АД63 (2ф) 40А (300мА) Schn El (1) !!!",
+    "name": "11472 УЗО АД63 (2ф) 40А (300мА) Schn El (1)",
     "rawName": "11472 УЗО АД63 (2ф) 40А (300мА) Schn El (1) !!!",
     "category": "ustroystvo_differentsialnoy_zashchity",
     "categoryTitle": "",
@@ -6804,8 +6874,9 @@
     "certificate": null
   },
   {
+    "id": 24167,
     "sku": "11473",
-    "name": "УЗО АД63 (2ф) 16А (30мА) Schn El (1) !!!",
+    "name": "УЗО АД63 (2ф) 16А (30мА) Schn El (1)",
     "rawName": "11473 УЗО АД63 (2ф) 16А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -6915,8 +6986,9 @@
     "certificate": null
   },
   {
+    "id": 23180,
     "sku": "11474",
-    "name": "УЗО АД63 (2ф) 25А (30мА) Schn El (1) !!!",
+    "name": "УЗО АД63 (2ф) 25А (30мА) Schn El (1)",
     "rawName": "11474 УЗО АД63 (2ф) 25А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -7031,8 +7103,9 @@
     }
   },
   {
+    "id": 24166,
     "sku": "11475",
-    "name": "УЗО АД63 (2ф) 40А (30мА) Schn El (1) !!!",
+    "name": "УЗО АД63 (2ф) 40А (30мА) Schn El (1)",
     "rawName": "11475 УЗО АД63 (2ф) 40А (30мА) Schn El (1) !!!",
     "category": "vd63_schneider_electric",
     "categoryTitle": "",
@@ -7142,6 +7215,7 @@
     "certificate": null
   },
   {
+    "id": 33700,
     "sku": "R9F12106",
     "name": "12106 АВ (1ф) 6А Schneider Electric (12)",
     "rawName": "12106 АВ (1ф) 6А Schneider Electric (12)",
@@ -7260,6 +7334,7 @@
     }
   },
   {
+    "id": 33701,
     "sku": "R9F12110",
     "name": "12110 АВ (1ф) 10А Schneider Electric (12)",
     "rawName": "12110 АВ (1ф) 10А Schneider Electric (12)",
@@ -7378,6 +7453,7 @@
     }
   },
   {
+    "id": 33702,
     "sku": "R9F12116",
     "name": "12116 АВ (1ф) 16А Schneider Electric (12)",
     "rawName": "12116 АВ (1ф) 16А Schneider Electric (12)",
@@ -7496,6 +7572,7 @@
     }
   },
   {
+    "id": 33703,
     "sku": "R9F12120",
     "name": "12120 АВ (1ф) 20А Schneider Electric (12)",
     "rawName": "12120 АВ (1ф) 20А Schneider Electric (12)",
@@ -7614,6 +7691,7 @@
     }
   },
   {
+    "id": 33704,
     "sku": "R9F12125",
     "name": "12125 АВ (1ф) 25А Schneider Electric (12)",
     "rawName": "12125 АВ (1ф) 25А Schneider Electric (12)",
@@ -7662,6 +7740,7 @@
     "certificate": null
   },
   {
+    "id": 33705,
     "sku": "R9F12132",
     "name": "12132 АВ (1ф) 32А Schneider Electric (12)",
     "rawName": "12132 АВ (1ф) 32А Schneider Electric (12)",
@@ -7780,6 +7859,7 @@
     }
   },
   {
+    "id": 33706,
     "sku": "R9F12140",
     "name": "12140 АВ (1ф) 40А Schneider Electric (12)",
     "rawName": "12140 АВ (1ф) 40А Schneider Electric (12)",
@@ -7898,6 +7978,7 @@
     }
   },
   {
+    "id": 33707,
     "sku": "R9F12150",
     "name": "12150 АВ (1ф) 50А Schneider Electric (12)",
     "rawName": "12150 АВ (1ф) 50А Schneider Electric (12)",
@@ -8011,6 +8092,7 @@
     "certificate": null
   },
   {
+    "id": 33708,
     "sku": "R9F12163",
     "name": "12163 АВ (1ф) 63А Schneider Electric (12)",
     "rawName": "12163 АВ (1ф) 63А Schneider Electric (12)",
@@ -8124,6 +8206,7 @@
     "certificate": null
   },
   {
+    "id": 22998,
     "sku": "122-15110",
     "name": "&quot;KAMELYA&quot; MINI E27 230мм (48)",
     "rawName": "122-15110 &quot;KAMELYA&quot; MINI E27 230мм (48)",
@@ -8231,6 +8314,7 @@
     "certificate": null
   },
   {
+    "id": 20191,
     "sku": "122-15115",
     "name": "&quot;AKASYA&quot; MINI E27 230мм (48)",
     "rawName": "122-15115 &quot;AKASYA&quot; MINI E27 230мм (48)",
@@ -8338,6 +8422,7 @@
     "certificate": null
   },
   {
+    "id": 21192,
     "sku": "122-15210",
     "name": "&quot;KAMELYA&quot; STANDART 2х E27 265мм (36)",
     "rawName": "122-15210 &quot;KAMELYA&quot; STANDART 2х E27 265мм (36)",
@@ -8450,6 +8535,7 @@
     }
   },
   {
+    "id": 22183,
     "sku": "122-15215",
     "name": "&quot;AKASYA&quot; STANDART 2х Е27 265мм (36)",
     "rawName": "122-15215 &quot;AKASYA&quot; STANDART 2х Е27 265мм (36)",
@@ -8562,6 +8648,7 @@
     }
   },
   {
+    "id": 18161,
     "sku": "122-15310",
     "name": "&quot;KAMELYA&quot; MAXI 2х E27 400мм (10)",
     "rawName": "122-15310 &quot;KAMELYA&quot; MAXI 2х E27 400мм (10)",
@@ -8669,6 +8756,7 @@
     "certificate": null
   },
   {
+    "id": 23181,
     "sku": "122-15315",
     "name": "&quot;AKASYA&quot; MAXI 2х E27 400мм (10)",
     "rawName": "122-15315 &quot;AKASYA&quot; MAXI 2х E27 400мм (10)",
@@ -8776,6 +8864,7 @@
     "certificate": null
   },
   {
+    "id": 33709,
     "sku": "R9F12206",
     "name": "12206 АВ (2ф) 6А Schneider Electric (6)",
     "rawName": "12206 АВ (2ф) 6А Schneider Electric (6)",
@@ -8889,6 +8978,7 @@
     "certificate": null
   },
   {
+    "id": 33710,
     "sku": "R9F12210",
     "name": "12210 АВ (2ф) 10А Schneider Electric (6)",
     "rawName": "12210 АВ (2ф) 10А Schneider Electric (6)",
@@ -9002,6 +9092,7 @@
     "certificate": null
   },
   {
+    "id": 33711,
     "sku": "R9F12216",
     "name": "12216 АВ (2ф) 16А Schneider Electric (6)",
     "rawName": "12216 АВ (2ф) 16А Schneider Electric (6)",
@@ -9115,6 +9206,7 @@
     "certificate": null
   },
   {
+    "id": 33712,
     "sku": "R9F12220",
     "name": "12220 АВ (2ф) 20А Schneider Electric (6)",
     "rawName": "12220 АВ (2ф) 20А Schneider Electric (6)",
@@ -9163,6 +9255,7 @@
     "certificate": null
   },
   {
+    "id": 33713,
     "sku": "R9F12225",
     "name": "12225 АВ (2ф) 25А Schneider Electric (6)",
     "rawName": "12225 АВ (2ф) 25А Schneider Electric (6)",
@@ -9276,6 +9369,7 @@
     "certificate": null
   },
   {
+    "id": 33714,
     "sku": "R9F12232",
     "name": "12232 АВ (2ф) 32А Schneider Electric (6)",
     "rawName": "12232 АВ (2ф) 32А Schneider Electric (6)",
@@ -9354,6 +9448,7 @@
     "certificate": null
   },
   {
+    "id": 33715,
     "sku": "R9F12240",
     "name": "12240 АВ (2ф) 40А Schneider Electric (6)",
     "rawName": "12240 АВ (2ф) 40А Schneider Electric (6)",
@@ -9407,6 +9502,7 @@
     "certificate": null
   },
   {
+    "id": 33716,
     "sku": "R9F12250",
     "name": "12250 АВ (2ф) 50А Schneider Electric (6)",
     "rawName": "12250 АВ (2ф) 50А Schneider Electric (6)",
@@ -9525,6 +9621,7 @@
     }
   },
   {
+    "id": 33717,
     "sku": "R9F12263",
     "name": "12263 АВ (2ф) 63А Schneider Electric (6)",
     "rawName": "12263 АВ (2ф) 63А Schneider Electric (6)",
@@ -9638,6 +9735,7 @@
     "certificate": null
   },
   {
+    "id": 33718,
     "sku": "R9F12306",
     "name": "12306 АВ (3ф) 6А Schneider Electric (4)",
     "rawName": "12306 АВ (3ф) 6А Schneider Electric (4)",
@@ -9756,6 +9854,7 @@
     }
   },
   {
+    "id": 33719,
     "sku": "R9F12310",
     "name": "12310 АВ (3ф) 10А Schneider Electric (4)",
     "rawName": "12310 АВ (3ф) 10А Schneider Electric (4)",
@@ -9869,6 +9968,7 @@
     "certificate": null
   },
   {
+    "id": 33720,
     "sku": "R9F12316",
     "name": "12316 АВ (3ф) 16А Schneider Electric (4)",
     "rawName": "12316 АВ (3ф) 16А Schneider Electric (4)",
@@ -9982,6 +10082,7 @@
     "certificate": null
   },
   {
+    "id": 33721,
     "sku": "R9F12320",
     "name": "12320 АВ (3ф) 20А Schneider Electric (4)",
     "rawName": "12320 АВ (3ф) 20А Schneider Electric (4)",
@@ -10095,6 +10196,7 @@
     "certificate": null
   },
   {
+    "id": 33722,
     "sku": "R9F12325",
     "name": "12325 АВ (3ф) 25А Schneider Electric (4)",
     "rawName": "12325 АВ (3ф) 25А Schneider Electric (4)",
@@ -10208,6 +10310,7 @@
     "certificate": null
   },
   {
+    "id": 33723,
     "sku": "R9F12332",
     "name": "12332 АВ (3ф) 32А Schneider Electric (4)",
     "rawName": "12332 АВ (3ф) 32А Schneider Electric (4)",
@@ -10326,6 +10429,7 @@
     }
   },
   {
+    "id": 33724,
     "sku": "R9F12340",
     "name": "12340 АВ (3ф) 40А Schneider Electric (4)",
     "rawName": "12340 АВ (3ф) 40А Schneider Electric (4)",
@@ -10439,6 +10543,7 @@
     "certificate": null
   },
   {
+    "id": 33725,
     "sku": "R9F12350",
     "name": "12350 АВ (3ф) 50А Schneider Electric (4)",
     "rawName": "12350 АВ (3ф) 50А Schneider Electric (4)",
@@ -10557,6 +10662,7 @@
     }
   },
   {
+    "id": 33726,
     "sku": "R9F12363",
     "name": "12363 АВ (3ф) 63А Schneider Electric (4)",
     "rawName": "12363 АВ (3ф) 63А Schneider Electric (4)",
@@ -10670,6 +10776,7 @@
     "certificate": null
   },
   {
+    "id": 54355,
     "sku": "13143DEK_",
     "name": "13143 ВА 105 4Р 25А х-ка В DEKraft",
     "rawName": "13143 ВА 105 4Р 25А х-ка В DEKraft",
@@ -10782,6 +10889,7 @@
     }
   },
   {
+    "id": 54356,
     "sku": "13143DEK",
     "name": "13144 ВА 105 4Р 32А х-ка В DEKraft",
     "rawName": "13144 ВА 105 4Р 32А х-ка В DEKraft",
@@ -10889,6 +10997,7 @@
     "certificate": null
   },
   {
+    "id": 54357,
     "sku": "13147DEK",
     "name": "13147 ВА 105 4Р 63А х-ка В DEKraft",
     "rawName": "13147 ВА 105 4Р 63А х-ка В DEKraft",
@@ -10996,8 +11105,9 @@
     "certificate": null
   },
   {
+    "id": 20192,
     "sku": "151000203_",
-    "name": "13848 IL MX 500Y 28W+38W QB T5 (66W) 6500К OPPLE (1) !!!",
+    "name": "13848 IL MX 500Y 28W+38W QB T5 (66W) 6500К OPPLE (1)",
     "rawName": "13848 IL MX 500Y 28W+38W QB T5 (66W) 6500К OPPLE (1) !!!",
     "category": "nakladnye_lyuministsentnye_lbo_lpo_obn",
     "categoryTitle": "",
@@ -11108,6 +11218,7 @@
     }
   },
   {
+    "id": 54324,
     "sku": "17011DEK",
     "name": "17011 Выключ.нагрузки BH102-3P-63A DEKraft",
     "rawName": "17011 Выключ.нагрузки BH102-3P-63A DEKraft",
@@ -11215,6 +11326,7 @@
     "certificate": null
   },
   {
+    "id": 24038,
     "sku": "щт02230269",
     "name": "1И250ДНаТ46Н-003УХЛ2 220В GALAD",
     "rawName": "1И250ДНаТ46Н-003УХЛ2 220В GALAD",
@@ -11322,6 +11434,7 @@
     "certificate": null
   },
   {
+    "id": 18164,
     "sku": "01749",
     "name": "1К1000ДРИ48-002УХЛ1 220В-9,5А с ИЗУ",
     "rawName": "1К1000ДРИ48-002УХЛ1 220В-9,5А с ИЗУ",
@@ -11429,6 +11542,7 @@
     "certificate": null
   },
   {
+    "id": 19185,
     "sku": "щт-0001673",
     "name": "1К2000ДРИ81-001УХЛ1 380В с ИЗУ GALAD",
     "rawName": "1К2000ДРИ81-001УХЛ1 380В с ИЗУ GALAD",
@@ -11536,6 +11650,7 @@
     "certificate": null
   },
   {
+    "id": 48788,
     "sku": "221-2411",
     "name": "Клемма соед. 2-пров. (0,2-4мм² 32А) WAGO (60) NEW",
     "rawName": "221-2411 Клемма соед. 2-пров. (0,2-4мм² 32А) WAGO (60) NEW",
@@ -11598,6 +11713,7 @@
     "certificate": null
   },
   {
+    "id": 48782,
     "sku": "221-412",
     "name": "Клемма соед. 2-пров. (0,2-4мм² 32А) WAGO (100) NEW",
     "rawName": "221-412 Клемма соед. 2-пров. (0,2-4мм² 32А) WAGO (100) NEW",
@@ -11665,6 +11781,7 @@
     "certificate": null
   },
   {
+    "id": 48783,
     "sku": "221-413",
     "name": "Клемма соед. 3-пров. (0,2-4мм² 32А) WAGO (50) NEW",
     "rawName": "221-413 Клемма соед. 3-пров. (0,2-4мм² 32А) WAGO (50) NEW",
@@ -11727,6 +11844,7 @@
     "certificate": null
   },
   {
+    "id": 48784,
     "sku": "221-415",
     "name": "Клемма соед. 5-пров. (0,2-4мм² 32А) WAGO (25) NEW",
     "rawName": "221-415 Клемма соед. 5-пров. (0,2-4мм² 32А) WAGO (25) NEW",
@@ -11794,6 +11912,7 @@
     "certificate": null
   },
   {
+    "id": 48786,
     "sku": "221-500",
     "name": "Держатель монтажный для клемм 221 серии WAGO NEW",
     "rawName": "221-500 Держатель монтажный для клемм 221 серии WAGO NEW",
@@ -11846,6 +11965,7 @@
     "certificate": null
   },
   {
+    "id": 48791,
     "sku": "221-612",
     "name": "Клемма соед. 2-пров. (0,5-6мм² 41А) WAGO (50) NEW",
     "rawName": "221-612 Клемма соед. 2-пров. (0,5-6мм² 41А) WAGO (50) NEW",
@@ -11903,6 +12023,7 @@
     "certificate": null
   },
   {
+    "id": 48789,
     "sku": "221-613",
     "name": "Клемма соед. 3-пров. (0,5-6мм² 41А) WAGO (30) NEW",
     "rawName": "221-613 Клемма соед. 3-пров. (0,5-6мм² 41А) WAGO (30) NEW",
@@ -11955,6 +12076,7 @@
     "certificate": null
   },
   {
+    "id": 48798,
     "sku": "221-615",
     "name": "Клемма соед. 5-пров. (0,5-6мм² 41А) WAGO (15) NEW",
     "rawName": "221-615 Клемма соед. 5-пров. (0,5-6мм² 41А) WAGO (15) NEW",
@@ -12017,6 +12139,7 @@
     "certificate": null
   },
   {
+    "id": 45163,
     "sku": "030300442_",
     "name": "222 Клемма проходная (0,08-4мм 32А 2х2) UNIT (50/2500) UNIT",
     "rawName": "222 Клемма проходная (0,08-4мм 32А 2х2) UNIT (50/2500) UNIT",
@@ -12074,6 +12197,7 @@
     "certificate": null
   },
   {
+    "id": 22978,
     "sku": "UKZ-001-412",
     "name": "222-412 Клемма (0,08-2,5мм 32А) IEK (50)",
     "rawName": "222-412 Клемма (0,08-2,5мм 32А) IEK (50)",
@@ -12097,6 +12221,7 @@
     "certificate": null
   },
   {
+    "id": 20974,
     "sku": "030300417_",
     "name": "222-412 Клемма (0,08-2,5мм 32А) UNIT (100/3000)",
     "rawName": "222-412 Клемма (0,08-2,5мм 32А) UNIT (100/3000)",
@@ -12116,12 +12241,12 @@
       {
         "id": "13",
         "name": "Алматы",
-        "quantity": 62396
+        "quantity": 60396
       },
       {
         "id": "18",
         "name": "Усть-Каменогорск",
-        "quantity": 3557
+        "quantity": 3457
       },
       {
         "id": "19",
@@ -12166,6 +12291,7 @@
     "certificate": null
   },
   {
+    "id": 53360,
     "sku": "030300458_",
     "name": "222-412 Клемма (0,08-2,5мм 32А) блистер 6 шт UNIT NEW",
     "rawName": "222-412 Клемма (0,08-2,5мм 32А) блистер 6 шт UNIT NEW",
@@ -12243,6 +12369,7 @@
     }
   },
   {
+    "id": 38828,
     "sku": "UKZ-004-412",
     "name": "222-412 Клемма (4шт/упак) IEK E-PRO",
     "rawName": "222-412 Клемма (4шт/упак) IEK E-PRO",
@@ -12264,6 +12391,7 @@
     "certificate": null
   },
   {
+    "id": 48790,
     "sku": "222-412",
     "name": "Клемма соед. 2-пров. (0,08-2,5мм.² 32А) WAGO (100) NEW",
     "rawName": "222-412 Клемма соед. 2-пров. (0,08-2,5мм.² 32А) WAGO (100) NEW",
@@ -12281,7 +12409,7 @@
       {
         "id": "13",
         "name": "Алматы",
-        "quantity": 6756
+        "quantity": 6757
       },
       {
         "id": "18",
@@ -12331,6 +12459,7 @@
     "certificate": null
   },
   {
+    "id": 19187,
     "sku": "UKZ-001-413",
     "name": "222-413 Клемма (0,08-2,5мм 32А) IEK (50)",
     "rawName": "222-413 Клемма (0,08-2,5мм 32А) IEK (50)",
@@ -12359,6 +12488,7 @@
     }
   },
   {
+    "id": 21977,
     "sku": "030300418_",
     "name": "222-413 Клемма (0,08-2,5мм 32А) UNIT (100/3000)",
     "rawName": "222-413 Клемма (0,08-2,5мм 32А) UNIT (100/3000)",
@@ -12383,7 +12513,7 @@
       {
         "id": "18",
         "name": "Усть-Каменогорск",
-        "quantity": 3642
+        "quantity": 6542
       },
       {
         "id": "19",
@@ -12428,6 +12558,7 @@
     "certificate": null
   },
   {
+    "id": 53361,
     "sku": "030300459_",
     "name": "222-413 Клемма (0,08-2,5мм 32А) блистер 6 шт UNIT NEW",
     "rawName": "222-413 Клемма (0,08-2,5мм 32А) блистер 6 шт UNIT NEW",
@@ -12535,6 +12666,7 @@
     "certificate": null
   },
   {
+    "id": 38829,
     "sku": "UKZ-004-413",
     "name": "222-413 Клемма (4шт/упак) IEK E-PRO",
     "rawName": "222-413 Клемма (4шт/упак) IEK E-PRO",
@@ -12562,6 +12694,7 @@
     "certificate": null
   },
   {
+    "id": 58309,
     "sku": "222-413",
     "name": "Клемма соед. 3-пров. (0,08-2,5мм.² 32А) WAGO (50) NEW",
     "rawName": "222-413 Клемма соед. 3-пров. (0,08-2,5мм.² 32А) WAGO (50) NEW",
@@ -12611,7 +12744,7 @@
       {
         "id": "24",
         "name": "Нур-Султан",
-        "quantity": 5552
+        "quantity": 5452
       },
       {
         "id": "25",
@@ -12636,6 +12769,7 @@
     }
   },
   {
+    "id": 21195,
     "sku": "UKZ-001-415",
     "name": "222-415 Клемма (0,08-2,5мм 32А) IEK (50)",
     "rawName": "222-415 Клемма (0,08-2,5мм 32А) IEK (50)",
@@ -12670,6 +12804,7 @@
     }
   },
   {
+    "id": 24048,
     "sku": "030300419_",
     "name": "222-415 Клемма (0,08-2,5мм 32А) UNIT (50/2400)",
     "rawName": "222-415 Клемма (0,08-2,5мм 32А) UNIT (50/2400)",
@@ -12694,7 +12829,7 @@
       {
         "id": "18",
         "name": "Усть-Каменогорск",
-        "quantity": 439
+        "quantity": 539
       },
       {
         "id": "19",
@@ -12739,6 +12874,7 @@
     "certificate": null
   },
   {
+    "id": 53362,
     "sku": "030300460_",
     "name": "222-415 Клемма (0,08-2,5мм 32А) блистер 6 шт UNIT NEW",
     "rawName": "222-415 Клемма (0,08-2,5мм 32А) блистер 6 шт UNIT NEW",
@@ -12811,6 +12947,7 @@
     "certificate": null
   },
   {
+    "id": 38830,
     "sku": "UKZ-004-415",
     "name": "222-415 Клемма (4шт/упак) IEK E-PRO",
     "rawName": "222-415 Клемма (4шт/упак) IEK E-PRO",
@@ -12832,6 +12969,7 @@
     "certificate": null
   },
   {
+    "id": 48797,
     "sku": "222-415",
     "name": "Клемма соед. 5-пров. (0,08-2,5мм.² 32А) WAGO (40) NEW",
     "rawName": "222-415 Клемма соед. 5-пров. (0,08-2,5мм.² 32А) WAGO (40) NEW",
@@ -12899,6 +13037,7 @@
     "certificate": null
   },
   {
+    "id": 45162,
     "sku": "030300441_",
     "name": "222-418 Клемма (0,08-2,5мм 32А) UNIT (50/2500) UNIT",
     "rawName": "222-418 Клемма (0,08-2,5мм 32А) UNIT (50/2500) UNIT",
@@ -12966,6 +13105,7 @@
     "certificate": null
   },
   {
+    "id": 45164,
     "sku": "030300443_",
     "name": "223 Клемма проходная (0,08-4мм 32А 3х3) UNIT (50/2500) UNIT",
     "rawName": "223 Клемма проходная (0,08-4мм 32А 3х3) UNIT (50/2500) UNIT",
@@ -12988,7 +13128,7 @@
       {
         "id": "18",
         "name": "Усть-Каменогорск",
-        "quantity": 124
+        "quantity": 74
       },
       {
         "id": "19",
@@ -13033,6 +13173,7 @@
     }
   },
   {
+    "id": 48806,
     "sku": "224-111",
     "name": "Клемма соед. 1*1 (0-2,5мм.) WAGO (100) NEW",
     "rawName": "224-111 Клемма соед. 1*1 (0-2,5мм.) WAGO (100) NEW",
@@ -13075,6 +13216,7 @@
     "certificate": null
   },
   {
+    "id": 48781,
     "sku": "224-122",
     "name": "Клемма соед. 2*1 (0-2,5мм. 32А) WAGO (100) NEW",
     "rawName": "224-122 Клемма соед. 2*1 (0-2,5мм. 32А) WAGO (100) NEW",
@@ -13112,6 +13254,7 @@
     "certificate": null
   },
   {
+    "id": 48780,
     "sku": "2273-202",
     "name": "Клемма соед. 2-пров. (24А) WAGO (100) NEW",
     "rawName": "2273-202 Клемма соед. 2-пров. (24А) WAGO (100) NEW",
@@ -13169,6 +13312,7 @@
     "certificate": null
   },
   {
+    "id": 48794,
     "sku": "2273-203",
     "name": "Клемма соед. 3-пров. (24А) WAGO (100) NEW",
     "rawName": "2273-203 Клемма соед. 3-пров. (24А) WAGO (100) NEW",
@@ -13186,7 +13330,7 @@
       {
         "id": "13",
         "name": "Алматы",
-        "quantity": 6772
+        "quantity": 6742
       },
       {
         "id": "18",
@@ -13231,6 +13375,7 @@
     }
   },
   {
+    "id": 48796,
     "sku": "2273-204",
     "name": "Клемма соед. 4-пров. (24А) &quot;WAGO&quot; (100) NEW",
     "rawName": "2273-204 Клемма соед. 4-пров. (24А) &quot;WAGO&quot; (100) NEW",
@@ -13298,6 +13443,7 @@
     "certificate": null
   },
   {
+    "id": 48785,
     "sku": "2273-205",
     "name": "Клемма соед. 5-пров. WAGO (100) NEW",
     "rawName": "2273-205 Клемма соед. 5-пров. WAGO (100) NEW",
@@ -13370,6 +13516,7 @@
     }
   },
   {
+    "id": 48801,
     "sku": "2273-208",
     "name": "Клемма соед. 8-пров. (24А) WAGO (50) NEW",
     "rawName": "2273-208 Клемма соед. 8-пров. (24А) WAGO (50) NEW",
@@ -13432,6 +13579,7 @@
     }
   },
   {
+    "id": 48792,
     "sku": "2273-242",
     "name": "Клемма соед. 2-пров. (с пастой) WAGO (100) NEW",
     "rawName": "2273-242 Клемма соед. 2-пров. (с пастой) WAGO (100) NEW",
@@ -13479,6 +13627,7 @@
     "certificate": null
   },
   {
+    "id": 48793,
     "sku": "2273-243",
     "name": "Клемма соед. 3-пров. (24А) (с пастой) WAGO (100) NEW",
     "rawName": "2273-243 Клемма соед. 3-пров. (24А) (с пастой) WAGO (100) NEW",
@@ -13536,6 +13685,7 @@
     "certificate": null
   },
   {
+    "id": 48795,
     "sku": "2273-244",
     "name": "Клемма соед. 4-пров. (24А) (с пастой) WAGO (100) NEW",
     "rawName": "2273-244 Клемма соед. 4-пров. (24А) (с пастой) WAGO (100) NEW",
@@ -13603,6 +13753,7 @@
     }
   },
   {
+    "id": 48799,
     "sku": "2273-245",
     "name": "Клемма соед. 5-пров. (24А) (с пастой) WAGO (100) NEW",
     "rawName": "2273-245 Клемма соед. 5-пров. (24А) (с пастой) WAGO (100) NEW",
@@ -13660,6 +13811,7 @@
     "certificate": null
   },
   {
+    "id": 48800,
     "sku": "2273-248",
     "name": "Клемма соед. 8-пров. (24А) (с пастой) WAGO (50) NEW",
     "rawName": "2273-248 Клемма соед. 8-пров. (24А) (с пастой) WAGO (50) NEW",
@@ -13727,6 +13879,7 @@
     }
   },
   {
+    "id": 53356,
     "sku": "030300461_",
     "name": "228-612 Клемма проз.EXPERT (0,5-6мм 40А) UNIT NEW (50)",
     "rawName": "228-612 Клемма проз.EXPERT (0,5-6мм 40А) UNIT NEW (50)",
@@ -13839,6 +13992,7 @@
     }
   },
   {
+    "id": 53357,
     "sku": "030300464_",
     "name": "228-612 Клемма проз.EXPERT (0,5-6мм 40А) блистер 6 шт UNIT NEW",
     "rawName": "228-612 Клемма проз.EXPERT (0,5-6мм 40А) блистер 6 шт UNIT NEW",
@@ -13911,6 +14065,7 @@
     "certificate": null
   },
   {
+    "id": 53355,
     "sku": "030300462_",
     "name": "228-613 Клемма проз.EXPERT (0,5-6мм 40А) UNIT NEW (50)",
     "rawName": "228-613 Клемма проз.EXPERT (0,5-6мм 40А) UNIT NEW (50)",
@@ -13958,7 +14113,7 @@
       {
         "id": "13",
         "name": "Алматы",
-        "quantity": 67115
+        "quantity": 67065
       },
       {
         "id": "14",
@@ -14023,6 +14178,7 @@
     }
   },
   {
+    "id": 53358,
     "sku": "030300465_",
     "name": "228-613 Клемма проз.EXPERT (0,5-6мм 40А) блистер 6 шт UNIT NEW",
     "rawName": "228-613 Клемма проз.EXPERT (0,5-6мм 40А) блистер 6 шт UNIT NEW",
@@ -14097,6 +14253,7 @@
     "certificate": null
   },
   {
+    "id": 53354,
     "sku": "030300463_",
     "name": "228-615 Клемма проз.EXPERT (0,5-6мм 40А) UNIT NEW (25)",
     "rawName": "228-615 Клемма проз.EXPERT (0,5-6мм 40А) UNIT NEW (25)",
@@ -14176,6 +14333,7 @@
     "certificate": null
   },
   {
+    "id": 53359,
     "sku": "030300466_",
     "name": "228-615 Клемма проз.EXPERT (0,5-6мм 40А) блистер 6 шт UNIT NEW",
     "rawName": "228-615 Клемма проз.EXPERT (0,5-6мм 40А) блистер 6 шт UNIT NEW",
@@ -14253,6 +14411,7 @@
     }
   },
   {
+    "id": 54325,
     "sku": "23107DEK",
     "name": "23107 Реле электротепловое РТ03-09-18-0,90А-1,20А DEKraft",
     "rawName": "23107 Реле электротепловое РТ03-09-18-0,90А-1,20А DEKraft",
@@ -14360,6 +14519,7 @@
     "certificate": null
   },
   {
+    "id": 54359,
     "sku": "23118DEK",
     "name": "23118 Реле электротепловое РТ03-25-32-6,30А-9.00А DEKraft",
     "rawName": "23118 Реле электротепловое РТ03-25-32-6,30А-9.00А DEKraft",
@@ -14467,6 +14627,7 @@
     "certificate": null
   },
   {
+    "id": 54360,
     "sku": "25001DEK",
     "name": "25001 Лампа коммутац.ЛК22-ADDS-WHI-LED DEKraft",
     "rawName": "25001 Лампа коммутац.ЛК22-ADDS-WHI-LED DEKraft",
@@ -14574,6 +14735,7 @@
     "certificate": null
   },
   {
+    "id": 54361,
     "sku": "25043DEK",
     "name": "25043 Выключатель кноп.ВК30-ABLF-GRN DEKraft",
     "rawName": "25043 Выключатель кноп.ВК30-ABLF-GRN DEKraft",
@@ -14681,6 +14843,7 @@
     "certificate": null
   },
   {
+    "id": 54347,
     "sku": "25065DEK",
     "name": "25065 Лампа коммутац. ЛК22-ADDS-GRN-LED-24 DEKraft",
     "rawName": "25065 Лампа коммутац. ЛК22-ADDS-GRN-LED-24 DEKraft",
@@ -14788,6 +14951,7 @@
     "certificate": null
   },
   {
+    "id": 54344,
     "sku": "25067DEK",
     "name": "25067 Лампа коммутац. ЛК22-ADDS-YEL-LED-24 DEKraft",
     "rawName": "25067 Лампа коммутац. ЛК22-ADDS-YEL-LED-24 DEKraft",
@@ -14895,8 +15059,9 @@
     "certificate": null
   },
   {
+    "id": 19000,
     "sku": "251-15300",
-    "name": "Крепление NF2803A1 D250мм !!!",
+    "name": "Крепление NF2803A1 D250мм",
     "rawName": "251-15300 Крепление NF2803A1 D250мм !!!",
     "category": "nakladnye_pod_energosberegayushchuyu_lampu_npo_npb_nbb",
     "categoryTitle": "",
@@ -15007,8 +15172,9 @@
     }
   },
   {
+    "id": 24173,
     "sku": "251-15314",
-    "name": "Подставка NF2802A1 D200-D400 !!!",
+    "name": "Подставка NF2802A1 D200-D400",
     "rawName": "251-15314 Подставка NF2802A1 D200-D400 !!!",
     "category": "nakladnye_pod_energosberegayushchuyu_lampu_npo_npb_nbb",
     "categoryTitle": "",
@@ -15114,6 +15280,7 @@
     "certificate": null
   },
   {
+    "id": 23186,
     "sku": "251-15520",
     "name": "&quot;SFERA&quot; Шар D 250 OPAL (12)",
     "rawName": "251-15520 &quot;SFERA&quot; Шар D 250 OPAL (12)",
@@ -15221,8 +15388,9 @@
     "certificate": null
   },
   {
+    "id": 19188,
     "sku": "251-15522",
-    "name": "&quot;SFERA&quot; Шар D 250 CLEAR (12)!!!",
+    "name": "&quot;SFERA&quot; Шар D 250 CLEAR (12)",
     "rawName": "251-15522 &quot;SFERA&quot; Шар D 250 CLEAR (12)!!!",
     "category": "sadovo_parkovye_zhtu_ntu_rtu_shary",
     "categoryTitle": "",
@@ -15328,6 +15496,7 @@
     "certificate": null
   },
   {
+    "id": 36416,
     "sku": "R9D25610",
     "name": "25610 УЗО АВДТ (1P+N) 10А (30мА) Schneider Electric (1)",
     "rawName": "25610 УЗО АВДТ (1P+N) 10А (30мА) Schneider Electric (1)",
@@ -15444,6 +15613,7 @@
     }
   },
   {
+    "id": 33733,
     "sku": "R9D25616",
     "name": "25616 УЗО АВДТ (1P+N) 16А (30мА) Schneider Electric (1)",
     "rawName": "25616 УЗО АВДТ (1P+N) 16А (30мА) Schneider Electric (1)",
@@ -15557,6 +15727,7 @@
     "certificate": null
   },
   {
+    "id": 36417,
     "sku": "R9D25620",
     "name": "25620 УЗО АВДТ (1P+N) 20А (30мА) Schneider Electric (1)",
     "rawName": "25620 УЗО АВДТ (1P+N) 20А (30мА) Schneider Electric (1)",
@@ -15673,6 +15844,7 @@
     }
   },
   {
+    "id": 33734,
     "sku": "R9D25625",
     "name": "25625 УЗО АВДТ (1P+N) 25А (30мА) Schneider Electric (1)",
     "rawName": "25625 УЗО АВДТ (1P+N) 25А (30мА) Schneider Electric (1)",
@@ -15786,8 +15958,9 @@
     "certificate": null
   },
   {
+    "id": 36418,
     "sku": "R9D25632",
-    "name": "25632 УЗО АВДТ (1P+N) 32А (30мА) Schneider Electric (1) !!!",
+    "name": "25632 УЗО АВДТ (1P+N) 32А (30мА) Schneider Electric (1)",
     "rawName": "25632 УЗО АВДТ (1P+N) 32А (30мА) Schneider Electric (1) !!!",
     "category": "shchitovoe_oborudovanie_aktsiya_10",
     "categoryTitle": "",
@@ -15902,6 +16075,7 @@
     }
   },
   {
+    "id": 33735,
     "sku": "R9D25640",
     "name": "25640 УЗО АВДТ (1P+N) 40А (30мА) Schneider Electric (1)",
     "rawName": "25640 УЗО АВДТ (1P+N) 40А (30мА) Schneider Electric (1)",
@@ -16020,8 +16194,9 @@
     }
   },
   {
+    "id": 24984,
     "sku": "259-09005",
-    "name": "TRUBA 100 см Алюминевая !!!",
+    "name": "TRUBA 100 см Алюминевая",
     "rawName": "259-09005 TRUBA 100 см Алюминевая !!!",
     "category": "opory_kronshteyny_stoyki",
     "categoryTitle": "",
@@ -16127,8 +16302,9 @@
     "certificate": null
   },
   {
+    "id": 23187,
     "sku": "12",
-    "name": "27241-1220-31 Рамка 2-ная титан !!!",
+    "name": "27241-1220-31 Рамка 2-ная титан",
     "rawName": "27241-1220-31 Рамка 2-ная титан !!!",
     "category": "rozetki_vyklyuchateli_makel_bylectrica_t_plast_lezard_schnieder_electric",
     "categoryTitle": "",
@@ -16236,6 +16412,7 @@
     "certificate": null
   },
   {
+    "id": 48787,
     "sku": "273-122",
     "name": "Клемма соед. 2-пров. WAGO NEW",
     "rawName": "273-122 Клемма соед. 2-пров. WAGO NEW",
@@ -16293,6 +16470,7 @@
     "certificate": null
   },
   {
+    "id": 21961,
     "sku": "zeta21421",
     "name": "3 КВТП 10х 70-120 (бумага)",
     "rawName": "3 КВТП 10х 70-120 (бумага)",
@@ -16316,6 +16494,7 @@
     "certificate": null
   },
   {
+    "id": 24967,
     "sku": "ka50020113",
     "name": "3 КВТп 10х 70-120 (Эконом, бумажная изоляция, НКЗ)",
     "rawName": "3 КВТп 10х 70-120 (Эконом, бумажная изоляция, НКЗ)",
@@ -16339,6 +16518,7 @@
     "certificate": null
   },
   {
+    "id": 24084,
     "sku": "zeta21419",
     "name": "3 КВТП 10х150-240 (1)",
     "rawName": "3 КВТП 10х150-240 (1)",
@@ -16368,6 +16548,7 @@
     "certificate": null
   },
   {
+    "id": 18077,
     "sku": "ka50020115",
     "name": "3 КВТп 10х150-240 (Эконом, бумажная изоляция, НКЗ)",
     "rawName": "3 КВТп 10х150-240 (Эконом, бумажная изоляция, НКЗ)",
@@ -16397,8 +16578,9 @@
     "certificate": null
   },
   {
+    "id": 19963,
     "sku": "UZM-BIK10-VN3-70120SZ",
-    "name": "3 КВтп 10х70/120-02 IEK!!!",
+    "name": "3 КВтп 10х70/120-02 IEK",
     "rawName": "3 КВтп 10х70/120-02 IEK!!!",
     "category": "kontsevye",
     "categoryTitle": "",
@@ -16425,6 +16607,7 @@
     }
   },
   {
+    "id": 24085,
     "sku": "zeta21424",
     "name": "3 КНТП 10х 70-120 (1)",
     "rawName": "3 КНТП 10х 70-120 (1)",
@@ -16448,6 +16631,7 @@
     "certificate": null
   },
   {
+    "id": 21084,
     "sku": "ka50020213",
     "name": "3 КНТп 10х 70-120 (Эконом, бумажная изоляция, НКЗ)",
     "rawName": "3 КНТп 10х 70-120 (Эконом, бумажная изоляция, НКЗ)",
@@ -16477,6 +16661,7 @@
     "certificate": null
   },
   {
+    "id": 21085,
     "sku": "zeta21422",
     "name": "3 КНТП 10х150-240 (1)",
     "rawName": "3 КНТП 10х150-240 (1)",
@@ -16511,6 +16696,7 @@
     }
   },
   {
+    "id": 19966,
     "sku": "ka50020215",
     "name": "3 КНТп 10х150-240 (Эконом, бумажная изоляция, НКЗ)",
     "rawName": "3 КНТп 10х150-240 (Эконом, бумажная изоляция, НКЗ)",
@@ -16545,6 +16731,7 @@
     }
   },
   {
+    "id": 24966,
     "sku": "Стп-10-150/240-02-Л",
     "name": "3 Стп 10х150-240-02-Л ПЗЭМИ",
     "rawName": "3 Стп 10х150-240-02-Л ПЗЭМИ",
@@ -16659,6 +16846,7 @@
     }
   },
   {
+    "id": 22955,
     "sku": "260300044+",
     "name": "3 СТп У 10х 35-50 (1) без соед-ля СБ-10 (35-50)",
     "rawName": "3 СТп У 10х 35-50 (1) без соед-ля СБ-10 (35-50)",
@@ -16682,6 +16870,7 @@
     "certificate": null
   },
   {
+    "id": 19967,
     "sku": "zeta21321",
     "name": "3 СТп У 10х 35(25)-50 (1)",
     "rawName": "3 СТп У 10х 35(25)-50 (1)",
@@ -16705,6 +16894,7 @@
     "certificate": null
   },
   {
+    "id": 21086,
     "sku": "zeta21312",
     "name": "3 СТп У 10х 70-120 (1)",
     "rawName": "3 СТп У 10х 70-120 (1)",
@@ -16728,6 +16918,7 @@
     "certificate": null
   },
   {
+    "id": 18078,
     "sku": "ka50020311",
     "name": "3 СТп У 10х 70-120 (Эконом, бумажная изоляция, НКЗ)",
     "rawName": "3 СТп У 10х 70-120 (Эконом, бумажная изоляция, НКЗ)",
@@ -16756,6 +16947,7 @@
     }
   },
   {
+    "id": 22083,
     "sku": "zeta21310",
     "name": "3 СТп У 10х150-240 (1)",
     "rawName": "3 СТп У 10х150-240 (1)",
@@ -16784,6 +16976,7 @@
     }
   },
   {
+    "id": 22956,
     "sku": "ka50020312",
     "name": "3 СТп У 10х150-240 (Эконом, бумажная изоляция, НКЗ)",
     "rawName": "3 СТп У 10х150-240 (Эконом, бумажная изоляция, НКЗ)",
@@ -16812,6 +17005,7 @@
     }
   },
   {
+    "id": 35616,
     "sku": "RMNF22TB30",
     "name": "3-х фазное реле контроля с функцией NFC, 8 A, 2CO, многофункц., 208…480VAC RMNF22TB30",
     "rawName": "3-х фазное реле контроля с функцией NFC, 8 A, 2CO, многофункц., 208…480VAC RMNF22TB30",
@@ -16879,6 +17073,7 @@
     "certificate": null
   },
   {
+    "id": 30514,
     "sku": "08",
     "name": "300 Вт Е27 (Р) (48)",
     "rawName": "300 Вт Е27 (Р) (48)",
@@ -16986,6 +17181,7 @@
     "certificate": null
   },
   {
+    "id": 54362,
     "sku": "32101DEK",
     "name": "32101 Изолятор шинный опорный ИО101-30 Кв8 Макс.роб.ток 380А Dekraft",
     "rawName": "32101 Изолятор шинный опорный ИО101-30 Кв8 Макс.роб.ток 380А Dekraft",
@@ -17093,8 +17289,9 @@
     "certificate": null
   },
   {
+    "id": 25519,
     "sku": "040300009_",
-    "name": "3276-313-0402 У03К (3места 2м. с/з) T-Plast !!!",
+    "name": "3276-313-0402 У03К (3места 2м. с/з) T-Plast",
     "rawName": "3276-313-0402 У03К (3места 2м. с/з) T-Plast !!!",
     "category": "udliniteli_shnury",
     "categoryTitle": "",
@@ -17200,8 +17397,9 @@
     "certificate": null
   },
   {
+    "id": 25498,
     "sku": "040300010_",
-    "name": "3276-313-0403 Удлинитель T-Plast (3-х пост. 3м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-313-0403 Удлинитель T-Plast (3-х пост. 3м. перекл. с подсветкой, с/з)",
     "rawName": "3276-313-0403 Удлинитель T-Plast (3-х пост. 3м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17307,8 +17505,9 @@
     "certificate": null
   },
   {
+    "id": 25492,
     "sku": "040300011_",
-    "name": "3276-313-0405 Удлинитель T-Plast (3-х пост. 5м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-313-0405 Удлинитель T-Plast (3-х пост. 5м. перекл. с подсветкой, с/з)",
     "rawName": "3276-313-0405 Удлинитель T-Plast (3-х пост. 5м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17414,8 +17613,9 @@
     "certificate": null
   },
   {
+    "id": 25517,
     "sku": "040300007_",
-    "name": "3276-324-0403 Удлинитель T-Plast (3-х пост. 3м. для UPS, с/з) !!!",
+    "name": "3276-324-0403 Удлинитель T-Plast (3-х пост. 3м. для UPS, с/з)",
     "rawName": "3276-324-0403 Удлинитель T-Plast (3-х пост. 3м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17521,8 +17721,9 @@
     "certificate": null
   },
   {
+    "id": 25490,
     "sku": "040300004_",
-    "name": "3276-324-0405 Удлинитель T-Plast (3-х пост. 5м. с/з) !!!",
+    "name": "3276-324-0405 Удлинитель T-Plast (3-х пост. 5м. с/з)",
     "rawName": "3276-324-0405 Удлинитель T-Plast (3-х пост. 5м. с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17628,8 +17829,9 @@
     "certificate": null
   },
   {
+    "id": 25488,
     "sku": "040300023_",
-    "name": "3276-413-0402 Удлинитель T-Plast (4-х пост. 2м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-413-0402 Удлинитель T-Plast (4-х пост. 2м. перекл. с подсветкой, с/з)",
     "rawName": "3276-413-0402 Удлинитель T-Plast (4-х пост. 2м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17735,8 +17937,9 @@
     "certificate": null
   },
   {
+    "id": 25520,
     "sku": "040300024_",
-    "name": "3276-413-0403 Удлинитель T-Plast (4-х пост. 3м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-413-0403 Удлинитель T-Plast (4-х пост. 3м. перекл. с подсветкой, с/з)",
     "rawName": "3276-413-0403 Удлинитель T-Plast (4-х пост. 3м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17842,8 +18045,9 @@
     "certificate": null
   },
   {
+    "id": 25505,
     "sku": "040300025_",
-    "name": "3276-413-0405 Удлинитель T-Plast (4-х пост. 5м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-413-0405 Удлинитель T-Plast (4-х пост. 5м. перекл. с подсветкой, с/з)",
     "rawName": "3276-413-0405 Удлинитель T-Plast (4-х пост. 5м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -17949,8 +18153,9 @@
     "certificate": null
   },
   {
+    "id": 25514,
     "sku": "040300026_",
-    "name": "3276-414-0402 Удлинитель T-Plast (4-х пост. 2м. для UPS, перекл. с подсветкой, с/з) !!!",
+    "name": "3276-414-0402 Удлинитель T-Plast (4-х пост. 2м. для UPS, перекл. с подсветкой, с/з)",
     "rawName": "3276-414-0402 Удлинитель T-Plast (4-х пост. 2м. для UPS, перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18056,8 +18261,9 @@
     "certificate": null
   },
   {
+    "id": 25516,
     "sku": "040300027_",
-    "name": "3276-414-0403 Удлинитель T-Plast (4-х пост. 3м. для UPS, перекл. с подсветкой, с/з) !!!",
+    "name": "3276-414-0403 Удлинитель T-Plast (4-х пост. 3м. для UPS, перекл. с подсветкой, с/з)",
     "rawName": "3276-414-0403 Удлинитель T-Plast (4-х пост. 3м. для UPS, перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18163,8 +18369,9 @@
     "certificate": null
   },
   {
+    "id": 25525,
     "sku": "040300028_",
-    "name": "3276-414-0405 Удлинитель T-Plast (4-х пост. 5м. для UPS, перекл. с подсветкой, с/з) !!!",
+    "name": "3276-414-0405 Удлинитель T-Plast (4-х пост. 5м. для UPS, перекл. с подсветкой, с/з)",
     "rawName": "3276-414-0405 Удлинитель T-Plast (4-х пост. 5м. для UPS, перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18270,8 +18477,9 @@
     "certificate": null
   },
   {
+    "id": 19195,
     "sku": "040300016_",
-    "name": "3276-423-0402 Удлинитель T-Plast (4-х пост. 2м. с/з) !!!",
+    "name": "3276-423-0402 Удлинитель T-Plast (4-х пост. 2м. с/з)",
     "rawName": "3276-423-0402 Удлинитель T-Plast (4-х пост. 2м. с/з) !!!",
     "category": "udliniteli_shnury",
     "categoryTitle": "",
@@ -18379,8 +18587,9 @@
     "certificate": null
   },
   {
+    "id": 25510,
     "sku": "040300017_",
-    "name": "3276-423-0403 Удлинитель T-Plast (4-х пост. 3м. с/з) !!!",
+    "name": "3276-423-0403 Удлинитель T-Plast (4-х пост. 3м. с/з)",
     "rawName": "3276-423-0403 Удлинитель T-Plast (4-х пост. 3м. с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18486,8 +18695,9 @@
     "certificate": null
   },
   {
+    "id": 25501,
     "sku": "040300018_",
-    "name": "3276-423-0405 Удлинитель T-Plast (4-х пост. 5м. с/з) !!!",
+    "name": "3276-423-0405 Удлинитель T-Plast (4-х пост. 5м. с/з)",
     "rawName": "3276-423-0405 Удлинитель T-Plast (4-х пост. 5м. с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18598,8 +18808,9 @@
     }
   },
   {
+    "id": 25497,
     "sku": "040300020_",
-    "name": "3276-424-0402 Удлинитель T-Plast (4-х пост. 2м. для UPS, с/з) !!!",
+    "name": "3276-424-0402 Удлинитель T-Plast (4-х пост. 2м. для UPS, с/з)",
     "rawName": "3276-424-0402 Удлинитель T-Plast (4-х пост. 2м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18705,8 +18916,9 @@
     "certificate": null
   },
   {
+    "id": 25495,
     "sku": "040300021_",
-    "name": "3276-424-0403 Удлинитель T-Plast (4-х пост. 3м. для UPS, с/з) !!!",
+    "name": "3276-424-0403 Удлинитель T-Plast (4-х пост. 3м. для UPS, с/з)",
     "rawName": "3276-424-0403 Удлинитель T-Plast (4-х пост. 3м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18812,8 +19024,9 @@
     "certificate": null
   },
   {
+    "id": 25503,
     "sku": "040300022_",
-    "name": "3276-424-0405 Удлинитель T-Plast (4-х пост. 5м. для UPS, с/з) !!!",
+    "name": "3276-424-0405 Удлинитель T-Plast (4-х пост. 5м. для UPS, с/з)",
     "rawName": "3276-424-0405 Удлинитель T-Plast (4-х пост. 5м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -18919,8 +19132,9 @@
     "certificate": null
   },
   {
+    "id": 25508,
     "sku": "040300033_",
-    "name": "3276-524-0400 колодка с/з 5 постов T-Plast!!!",
+    "name": "3276-524-0400 колодка с/з 5 постов T-Plast",
     "rawName": "3276-524-0400 колодка с/з 5 постов T-Plast!!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -19031,8 +19245,9 @@
     }
   },
   {
+    "id": 25518,
     "sku": "040300034_",
-    "name": "3276-524-0402 Удлинитель T-Plast (5-ти пост. 2м. для UPS, с/з) !!!",
+    "name": "3276-524-0402 Удлинитель T-Plast (5-ти пост. 2м. для UPS, с/з)",
     "rawName": "3276-524-0402 Удлинитель T-Plast (5-ти пост. 2м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -19138,8 +19353,9 @@
     "certificate": null
   },
   {
+    "id": 25515,
     "sku": "040300035_",
-    "name": "3276-524-0403 Удлинитель T-Plast (5-ти пост. 3м. для UPS, с/з) !!!",
+    "name": "3276-524-0403 Удлинитель T-Plast (5-ти пост. 3м. для UPS, с/з)",
     "rawName": "3276-524-0403 Удлинитель T-Plast (5-ти пост. 3м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -19245,8 +19461,9 @@
     "certificate": null
   },
   {
+    "id": 25509,
     "sku": "040300036_",
-    "name": "3276-524-0405 Удлинитель T-Plast (5-ти пост. 5м. для UPS, с/з) !!!",
+    "name": "3276-524-0405 Удлинитель T-Plast (5-ти пост. 5м. для UPS, с/з)",
     "rawName": "3276-524-0405 Удлинитель T-Plast (5-ти пост. 5м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -19352,8 +19569,9 @@
     "certificate": null
   },
   {
+    "id": 25493,
     "sku": "040300051_",
-    "name": "3276-613-0402 Удлинитель T-Plast (6-ти пост. 2м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-613-0402 Удлинитель T-Plast (6-ти пост. 2м. перекл. с подсветкой, с/з)",
     "rawName": "3276-613-0402 Удлинитель T-Plast (6-ти пост. 2м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -19464,8 +19682,9 @@
     }
   },
   {
+    "id": 25499,
     "sku": "040300053_",
-    "name": "3276-613-0405 Удлинитель T-Plast (6-ти пост. 5м. перекл. с подсветкой, с/з) !!!",
+    "name": "3276-613-0405 Удлинитель T-Plast (6-ти пост. 5м. перекл. с подсветкой, с/з)",
     "rawName": "3276-613-0405 Удлинитель T-Plast (6-ти пост. 5м. перекл. с подсветкой, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -19576,8 +19795,9 @@
     }
   },
   {
+    "id": 22192,
     "sku": "040300043_",
-    "name": "3276-623-0400 Колодка T-Plast (6-ти пост. с/з) !!!",
+    "name": "3276-623-0400 Колодка T-Plast (6-ти пост. с/з)",
     "rawName": "3276-623-0400 Колодка T-Plast (6-ти пост. с/з) !!!",
     "category": "s_zazemleniem",
     "categoryTitle": "",
@@ -19685,8 +19905,9 @@
     "certificate": null
   },
   {
+    "id": 18173,
     "sku": "040300044_",
-    "name": "3276-623-0402 Удлинитель T-Plast (6-ти пост. 2м. с/з) !!!",
+    "name": "3276-623-0402 Удлинитель T-Plast (6-ти пост. 2м. с/з)",
     "rawName": "3276-623-0402 Удлинитель T-Plast (6-ти пост. 2м. с/з) !!!",
     "category": "udliniteli_shnury",
     "categoryTitle": "",
@@ -19794,8 +20015,9 @@
     "certificate": null
   },
   {
+    "id": 24955,
     "sku": "040300045_",
-    "name": "3276-623-0403 Удлинитель T-Plast (6-ти пост. 3м. с/з) !!!",
+    "name": "3276-623-0403 Удлинитель T-Plast (6-ти пост. 3м. с/з)",
     "rawName": "3276-623-0403 Удлинитель T-Plast (6-ти пост. 3м. с/з) !!!",
     "category": "udliniteli_shnury",
     "categoryTitle": "",
@@ -19908,8 +20130,9 @@
     }
   },
   {
+    "id": 25523,
     "sku": "040300047_",
-    "name": "3276-624-0400 колодка с/з 6 постов T-Plast!!!",
+    "name": "3276-624-0400 колодка с/з 6 постов T-Plast",
     "rawName": "3276-624-0400 колодка с/з 6 постов T-Plast!!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -20015,8 +20238,9 @@
     "certificate": null
   },
   {
+    "id": 25507,
     "sku": "040300050_",
-    "name": "3276-624-0405 Удлинитель T-Plast (6-ти пост. 5м. для UPS, с/з) !!!",
+    "name": "3276-624-0405 Удлинитель T-Plast (6-ти пост. 5м. для UPS, с/з)",
     "rawName": "3276-624-0405 Удлинитель T-Plast (6-ти пост. 5м. для UPS, с/з) !!!",
     "category": "udliniteli_kolodki_setevye_filtry_katushki",
     "categoryTitle": "",
@@ -20036,6 +20260,7 @@
     }
   },
   {
+    "id": 515710,
     "sku": "260300039_",
     "name": "3КВТп 10 х 35-50 без након. РЗКА",
     "rawName": "3КВТп 10 х 35-50 без након. РЗКА",
@@ -20143,6 +20368,7 @@
     "certificate": null
   },
   {
+    "id": 515711,
     "sku": "300100001_",
     "name": "3КВТп 10 х 70-120 без након. РЗКА",
     "rawName": "3КВТп 10 х 70-120 без након. РЗКА",
@@ -20190,6 +20416,7 @@
     "certificate": null
   },
   {
+    "id": 515712,
     "sku": "260300006_",
     "name": "3КВТп 10 х150-240 без након. РЗКА",
     "rawName": "3КВТп 10 х150-240 без након. РЗКА",
@@ -20232,6 +20459,7 @@
     "certificate": null
   },
   {
+    "id": 37342,
     "sku": "50117",
     "name": "3КВТп-10-150/240 с болт. соединителем КВТ 50117 NEW",
     "rawName": "3КВТп-10-150/240 с болт. соединителем КВТ 50117 NEW",
@@ -20339,6 +20567,7 @@
     "certificate": null
   },
   {
+    "id": 37340,
     "sku": "50116",
     "name": "3КВТп-10-70/120 с болт. соединителем КВТ 50116 NEW",
     "rawName": "3КВТп-10-70/120 с болт. соединителем КВТ 50116 NEW",
@@ -20446,6 +20675,7 @@
     "certificate": null
   },
   {
+    "id": 531411,
     "sku": "260300240_",
     "name": "3КВТпН 10х150-240 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
     "rawName": "3КВТпН 10х150-240 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
@@ -20467,6 +20697,7 @@
     "certificate": null
   },
   {
+    "id": 531412,
     "sku": "260300241_",
     "name": "3КВТпН 10х70-120 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
     "rawName": "3КВТпН 10х70-120 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
@@ -20488,6 +20719,7 @@
     "certificate": null
   },
   {
+    "id": 515707,
     "sku": "260300047_",
     "name": "3КНТп 10 х 35-50 без након. РЗКА",
     "rawName": "3КНТп 10 х 35-50 без након. РЗКА",
@@ -20535,6 +20767,7 @@
     "certificate": null
   },
   {
+    "id": 515708,
     "sku": "260300015_",
     "name": "3КНТп 10 х 70-120 без након. РЗКА",
     "rawName": "3КНТп 10 х 70-120 без након. РЗКА",
@@ -20577,6 +20810,7 @@
     "certificate": null
   },
   {
+    "id": 515709,
     "sku": "260300008_",
     "name": "3КНТп 10 х150-240 без након. РЗКА",
     "rawName": "3КНТп 10 х150-240 без након. РЗКА",
@@ -20684,6 +20918,7 @@
     "certificate": null
   },
   {
+    "id": 37343,
     "sku": "50120",
     "name": "3КНТп-10-150/240 с болт. соединителем КВТ 50120 NEW",
     "rawName": "3КНТп-10-150/240 с болт. соединителем КВТ 50120 NEW",
@@ -20796,6 +21031,7 @@
     }
   },
   {
+    "id": 522774,
     "sku": "50118",
     "name": "3КНТп-10-25/50 с болт. соединителем КВТ 50118 NEW",
     "rawName": "3КНТп-10-25/50 с болт. соединителем КВТ 50118 NEW",
@@ -20868,6 +21104,7 @@
     }
   },
   {
+    "id": 37341,
     "sku": "50119",
     "name": "3КНТп-10-70/120 с болт. соединителем КВТ 50119 NEW",
     "rawName": "3КНТп-10-70/120 с болт. соединителем КВТ 50119 NEW",
@@ -20975,6 +21212,7 @@
     "certificate": null
   },
   {
+    "id": 531413,
     "sku": "260300242_",
     "name": "3КНТпН 10х150-240 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
     "rawName": "3КНТпН 10х150-240 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
@@ -21002,6 +21240,7 @@
     "certificate": null
   },
   {
+    "id": 531414,
     "sku": "260300243_",
     "name": "3КНТпН 10х70-120 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
     "rawName": "3КНТпН 10х70-120 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
@@ -21029,6 +21268,7 @@
     "certificate": null
   },
   {
+    "id": 30376,
     "sku": "260300050_",
     "name": "3СТп 10х150-240 с соединителями",
     "rawName": "3СТп 10х150-240 с соединителями",
@@ -21066,6 +21306,7 @@
     }
   },
   {
+    "id": 531415,
     "sku": "260300244_",
     "name": "3СТп У 10х150-240 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
     "rawName": "3СТп У 10х150-240 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
@@ -21093,6 +21334,7 @@
     "certificate": null
   },
   {
+    "id": 531416,
     "sku": "260300245_",
     "name": "3СТп У 10х25-50 ЭРГ с соеденителями (бумага) ЭРГ",
     "rawName": "3СТп У 10х25-50 ЭРГ с соеденителями (бумага) ЭРГ",
@@ -21120,6 +21362,7 @@
     "certificate": null
   },
   {
+    "id": 531417,
     "sku": "260300246_",
     "name": "3СТп У 10х70-120 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
     "rawName": "3СТп У 10х70-120 ЭРГ с наконечниками (Эконом, бумажная изоляция) Оптима",
@@ -21147,6 +21390,7 @@
     "certificate": null
   },
   {
+    "id": 37346,
     "sku": "52833",
     "name": "3СТп-10-150/240 с болт. соединителем КВТ 52833 NEW",
     "rawName": "3СТп-10-150/240 с болт. соединителем КВТ 52833 NEW",
@@ -21254,8 +21498,9 @@
     "certificate": null
   },
   {
+    "id": 18963,
     "sku": "UZM-BIS10-VN3-150240SZ",
-    "name": "3Стп-10-150/240-02-Л IEK!!!",
+    "name": "3Стп-10-150/240-02-Л IEK",
     "rawName": "3Стп-10-150/240-02-Л IEK!!!",
     "category": "soedinitelnye",
     "categoryTitle": "",
@@ -21282,6 +21527,7 @@
     }
   },
   {
+    "id": 37344,
     "sku": "52832",
     "name": "3СТп-10-25/50 с болт. соединителем КВТ 52832 NEW",
     "rawName": "3СТп-10-25/50 с болт. соединителем КВТ 52832 NEW",
@@ -21394,6 +21640,7 @@
     }
   },
   {
+    "id": 37345,
     "sku": "52834",
     "name": "3СТп-10-70/120 с болт. соединителем КВТ 52834 NEW",
     "rawName": "3СТп-10-70/120 с болт. соединителем КВТ 52834 NEW",
@@ -21506,6 +21753,7 @@
     }
   },
   {
+    "id": 515715,
     "sku": "260300017_",
     "name": "3СТпУ 10 х 150-240 без гильз РЗКА",
     "rawName": "3СТпУ 10 х 150-240 без гильз РЗКА",
@@ -21543,6 +21791,7 @@
     "certificate": null
   },
   {
+    "id": 515713,
     "sku": "260300044_",
     "name": "3СТпУ 10 х 35-50 без гильз РЗКА",
     "rawName": "3СТпУ 10 х 35-50 без гильз РЗКА",
@@ -21585,6 +21834,7 @@
     }
   },
   {
+    "id": 515714,
     "sku": "260300023_",
     "name": "3СТпУ 10 х 70-120 без гильз РЗКА",
     "rawName": "3СТпУ 10 х 70-120 без гильз РЗКА",
@@ -21627,6 +21877,7 @@
     }
   },
   {
+    "id": 22084,
     "sku": "zeta20831",
     "name": "4 КВ(Н)ТП 1х 16-25 (1) универсальная",
     "rawName": "4 КВ(Н)ТП 1х 16-25 (1) универсальная",
@@ -21661,6 +21912,7 @@
     "certificate": null
   },
   {
+    "id": 20084,
     "sku": "zeta20829",
     "name": "4 КВ(Н)ТП 1х 35-50 (1) универсальная",
     "rawName": "4 КВ(Н)ТП 1х 35-50 (1) универсальная",
@@ -21690,6 +21942,7 @@
     "certificate": null
   },
   {
+    "id": 22085,
     "sku": "zeta20830",
     "name": "4 КВ(Н)ТП 1х 70-120 (1) универсальная",
     "rawName": "4 КВ(Н)ТП 1х 70-120 (1) универсальная",
@@ -21719,6 +21972,7 @@
     "certificate": null
   },
   {
+    "id": 18079,
     "sku": "zeta20828",
     "name": "4 КВ(Н)ТП 1х150-240 (1) универсальная",
     "rawName": "4 КВ(Н)ТП 1х150-240 (1) универсальная",
@@ -21753,6 +22007,7 @@
     }
   },
   {
+    "id": 22086,
     "sku": "zeta20715",
     "name": "4 ПСТб 1х 16-25 (Полиэтилен/броня) (1)",
     "rawName": "4 ПСТб 1х 16-25 (Полиэтилен/броня) (1)",
@@ -21781,6 +22036,7 @@
     }
   },
   {
+    "id": 25798,
     "sku": "051500150_",
     "name": "4 ПСТб 1х 25-50 универсальная UNIT (1)",
     "rawName": "4 ПСТб 1х 25-50 универсальная UNIT (1)",
@@ -21890,6 +22146,7 @@
     "certificate": null
   },
   {
+    "id": 21087,
     "sku": "zeta20716",
     "name": "4 ПСТб 1х 35-50 (Полиэтилен/броня) (1)",
     "rawName": "4 ПСТб 1х 35-50 (Полиэтилен/броня) (1)",
@@ -21924,6 +22181,7 @@
     }
   },
   {
+    "id": 25803,
     "sku": "051500151_",
     "name": "4 ПСТб 1х 70-120 универсальная UNIT (1)",
     "rawName": "4 ПСТб 1х 70-120 универсальная UNIT (1)",
@@ -22033,6 +22291,7 @@
     "certificate": null
   },
   {
+    "id": 24995,
     "sku": "13",
     "name": "4 ПСТб 1х150-240 (Полиэтилен/броня) (1)",
     "rawName": "4 ПСТб 1х150-240 (Полиэтилен/броня) (1)",
@@ -22061,6 +22320,7 @@
     }
   },
   {
+    "id": 25801,
     "sku": "051500152_",
     "name": "4 ПСТб 1х150-240 универсальная UNIT (1)",
     "rawName": "4 ПСТб 1х150-240 универсальная UNIT (1)",
@@ -22170,6 +22430,7 @@
     "certificate": null
   },
   {
+    "id": 23197,
     "sku": "4ПСт-в-35/50",
     "name": "4 ПСтБ-в 1х35-50 ПЗЭМИ",
     "rawName": "4 ПСтБ-в 1х35-50 ПЗЭМИ",
@@ -22279,6 +22540,7 @@
     "certificate": null
   },
   {
+    "id": 22195,
     "sku": "4ПСт-в-70/120",
     "name": "4 ПСтБ-в 1х70-120 ПЗЭМИ",
     "rawName": "4 ПСтБ-в 1х70-120 ПЗЭМИ",
@@ -22388,6 +22650,7 @@
     "certificate": null
   },
   {
+    "id": 58252,
     "sku": "400-110",
     "name": "Бокс для автоматических выключателей на 1-2 модуля без крышки (156шт)",
     "rawName": "400-110 Бокс для автоматических выключателей на 1-2 модуля без крышки (156шт)",
@@ -22457,6 +22720,7 @@
     "certificate": null
   },
   {
+    "id": 58253,
     "sku": "400-120",
     "name": "Бокс для автоматических выключателей на 2-4 модуля без крышки (84шт)",
     "rawName": "400-120 Бокс для автоматических выключателей на 2-4 модуля без крышки (84шт)",
@@ -22526,6 +22790,7 @@
     "certificate": null
   },
   {
+    "id": 515299,
     "sku": "402024",
     "name": "RX3 ВДТ 25А 2p (30мА-АС) Legrand (1)",
     "rawName": "402024 RX3 ВДТ 25А 2p (30мА-АС) Legrand (1)",
@@ -22607,6 +22872,7 @@
     }
   },
   {
+    "id": 515300,
     "sku": "402025",
     "name": "RX3 ВДТ 40А 2p (30мА-АС) Legrand (1)",
     "rawName": "402025 RX3 ВДТ 40А 2p (30мА-АС) Legrand (1)",
@@ -22683,6 +22949,7 @@
     "certificate": null
   },
   {
+    "id": 515301,
     "sku": "402026",
     "name": "RX3 ВДТ 63А 2p (30мА-АС) Legrand (1)",
     "rawName": "402026 RX3 ВДТ 63А 2p (30мА-АС) Legrand (1)",
@@ -22761,6 +23028,7 @@
     "certificate": null
   },
   {
+    "id": 515302,
     "sku": "402062",
     "name": "RX3 ВДТ 25А 4p (30мА-АС) Legrand (1)",
     "rawName": "402062 RX3 ВДТ 25А 4p (30мА-АС) Legrand (1)",
@@ -22841,6 +23109,7 @@
     }
   },
   {
+    "id": 515303,
     "sku": "402063",
     "name": "RX3 ВДТ 40А 4p (30мА-АС) Legrand (1)",
     "rawName": "402063 RX3 ВДТ 40А 4p (30мА-АС) Legrand (1)",
@@ -22917,6 +23186,7 @@
     "certificate": null
   },
   {
+    "id": 515304,
     "sku": "402064",
     "name": "RX3 ВДТ 63А 4p (30мА-АС) Legrand (1)",
     "rawName": "402064 RX3 ВДТ 63А 4p (30мА-АС) Legrand (1)",
@@ -22995,6 +23265,7 @@
     "certificate": null
   },
   {
+    "id": 515271,
     "sku": "403000",
     "name": "УЗО ВДТ TX3 (2ф) 25A (30мA-AC) Legrand (1)",
     "rawName": "403000 УЗО ВДТ TX3 (2ф) 25A (30мA-AC) Legrand (1)",
@@ -23067,6 +23338,7 @@
     "certificate": null
   },
   {
+    "id": 515272,
     "sku": "403001",
     "name": "УЗО ВДТ TX3 (2ф) 40A (30мA-AC) Legrand (1)",
     "rawName": "403001 УЗО ВДТ TX3 (2ф) 40A (30мA-AC) Legrand (1)",
@@ -23089,7 +23361,7 @@
       {
         "id": "13",
         "name": "Алматы",
-        "quantity": 17
+        "quantity": 16
       },
       {
         "id": "18",
@@ -23144,6 +23416,7 @@
     }
   },
   {
+    "id": 515273,
     "sku": "403002",
     "name": "УЗО ВДТ TX3 (2ф) 63A (30мA-AC) Legrand (1)",
     "rawName": "403002 УЗО ВДТ TX3 (2ф) 63A (30мA-AC) Legrand (1)",
@@ -23221,6 +23494,7 @@
     }
   },
   {
+    "id": 515274,
     "sku": "403008",
     "name": "УЗО ВДТ TX3 (4ф) 25A (30мA-AC) Legrand (1)",
     "rawName": "403008 УЗО ВДТ TX3 (4ф) 25A (30мA-AC) Legrand (1)",
@@ -23298,6 +23572,7 @@
     }
   },
   {
+    "id": 515275,
     "sku": "403009",
     "name": "УЗО ВДТ TX3 (4ф) 40A (30мA-AC) Legrand (1)",
     "rawName": "403009 УЗО ВДТ TX3 (4ф) 40A (30мA-AC) Legrand (1)",
@@ -23370,6 +23645,7 @@
     "certificate": null
   },
   {
+    "id": 515276,
     "sku": "403010",
     "name": "УЗО ВДТ TX3 (4ф) 63A (30мA-AC) Legrand (1)",
     "rawName": "403010 УЗО ВДТ TX3 (4ф) 63A (30мA-AC) Legrand (1)",
@@ -23447,8 +23723,9 @@
     }
   },
   {
+    "id": 25403,
     "sku": "404025х",
-    "name": "404025 TX3 1р 6А Legrand (10) !!!",
+    "name": "404025 TX3 1р 6А Legrand (10)",
     "rawName": "404025 TX3 1р 6А Legrand (10) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -23554,6 +23831,7 @@
     "certificate": null
   },
   {
+    "id": 515218,
     "sku": "404025",
     "name": "АВ TX3 1ф 6А Legrand (10)",
     "rawName": "404025 АВ TX3 1ф 6А Legrand (10)",
@@ -23666,8 +23944,9 @@
     "certificate": null
   },
   {
+    "id": 25401,
     "sku": "404026х",
-    "name": "404026 TX3 1р 10А Legrand (10) !!!",
+    "name": "404026 TX3 1р 10А Legrand (10)",
     "rawName": "404026 TX3 1р 10А Legrand (10) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -23773,6 +24052,7 @@
     "certificate": null
   },
   {
+    "id": 515219,
     "sku": "404026",
     "name": "АВ TX3 1ф 10А Legrand (10)",
     "rawName": "404026 АВ TX3 1ф 10А Legrand (10)",
@@ -23885,8 +24165,9 @@
     "certificate": null
   },
   {
+    "id": 25387,
     "sku": "404028х",
-    "name": "404028 TX3 1р 16А Legrand (10) !!!",
+    "name": "404028 TX3 1р 16А Legrand (10)",
     "rawName": "404028 TX3 1р 16А Legrand (10) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -23992,6 +24273,7 @@
     "certificate": null
   },
   {
+    "id": 515220,
     "sku": "404028",
     "name": "АВ TX3 1ф 16А Legrand (10)",
     "rawName": "404028 АВ TX3 1ф 16А Legrand (10)",
@@ -24113,6 +24395,7 @@
     }
   },
   {
+    "id": 515221,
     "sku": "404029",
     "name": "АВ TX3 1ф 20А Legrand (10)",
     "rawName": "404029 АВ TX3 1ф 20А Legrand (10)",
@@ -24225,8 +24508,9 @@
     "certificate": null
   },
   {
+    "id": 25376,
     "sku": "404030х",
-    "name": "404030 TX3 1р 25А Legrand (10) !!!",
+    "name": "404030 TX3 1р 25А Legrand (10)",
     "rawName": "404030 TX3 1р 25А Legrand (10) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -24337,6 +24621,7 @@
     }
   },
   {
+    "id": 515222,
     "sku": "404030",
     "name": "АВ TX3 1ф 25А Legrand (10)",
     "rawName": "404030 АВ TX3 1ф 25А Legrand (10)",
@@ -24458,8 +24743,9 @@
     }
   },
   {
+    "id": 25399,
     "sku": "404031х",
-    "name": "404031 TX3 1р 32А Legrand (10) !!!",
+    "name": "404031 TX3 1р 32А Legrand (10)",
     "rawName": "404031 TX3 1р 32А Legrand (10) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -24565,6 +24851,7 @@
     "certificate": null
   },
   {
+    "id": 515223,
     "sku": "404031",
     "name": "АВ TX3 1ф 32А Legrand (10)",
     "rawName": "404031 АВ TX3 1ф 32А Legrand (10)",
@@ -24677,8 +24964,9 @@
     "certificate": null
   },
   {
+    "id": 25384,
     "sku": "404032х",
-    "name": "404032 TX3 1р 40А Legrand (10) !!!",
+    "name": "404032 TX3 1р 40А Legrand (10)",
     "rawName": "404032 TX3 1р 40А Legrand (10) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -24784,6 +25072,7 @@
     "certificate": null
   },
   {
+    "id": 515224,
     "sku": "404032",
     "name": "АВ TX3 1ф 40А Legrand (10)",
     "rawName": "404032 АВ TX3 1ф 40А Legrand (10)",
@@ -24896,6 +25185,7 @@
     "certificate": null
   },
   {
+    "id": 515225,
     "sku": "404033",
     "name": "АВ TX3 1ф 50А Legrand (10)",
     "rawName": "404033 АВ TX3 1ф 50А Legrand (10)",
@@ -25012,6 +25302,7 @@
     "certificate": null
   },
   {
+    "id": 515226,
     "sku": "404034",
     "name": "АВ TX3 1ф 63А Legrand (10)",
     "rawName": "404034 АВ TX3 1ф 63А Legrand (10)",
@@ -25124,6 +25415,7 @@
     "certificate": null
   },
   {
+    "id": 515227,
     "sku": "404039",
     "name": "АВ TX3 2ф 6А Legrand (5)",
     "rawName": "404039 АВ TX3 2ф 6А Legrand (5)",
@@ -25241,6 +25533,7 @@
     }
   },
   {
+    "id": 515228,
     "sku": "404040",
     "name": "АВ TX3 2ф 10А Legrand (5)",
     "rawName": "404040 АВ TX3 2ф 10А Legrand (5)",
@@ -25353,8 +25646,9 @@
     "certificate": null
   },
   {
+    "id": 25371,
     "sku": "404042х",
-    "name": "404042 TX3 2р 16А Legrand (5) !!!",
+    "name": "404042 TX3 2р 16А Legrand (5)",
     "rawName": "404042 TX3 2р 16А Legrand (5) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -25460,6 +25754,7 @@
     "certificate": null
   },
   {
+    "id": 515229,
     "sku": "404042",
     "name": "АВ TX3 ф 16А Legrand (5)",
     "rawName": "404042 АВ TX3 ф 16А Legrand (5)",
@@ -25577,6 +25872,7 @@
     "certificate": null
   },
   {
+    "id": 515230,
     "sku": "404043",
     "name": "АВ TX3 2ф 20А Legrand (5)",
     "rawName": "404043 АВ TX3 2ф 20А Legrand (5)",
@@ -25689,8 +25985,9 @@
     "certificate": null
   },
   {
+    "id": 25383,
     "sku": "404044х",
-    "name": "404044 TX3 2р 25А Legrand (5) !!!",
+    "name": "404044 TX3 2р 25А Legrand (5)",
     "rawName": "404044 TX3 2р 25А Legrand (5) !!!",
     "category": "avtomaticheskie_vyklyuchateli",
     "categoryTitle": "",
@@ -25796,6 +26093,7 @@
     "certificate": null
   },
   {
+    "id": 515231,
     "sku": "404044",
     "name": "АВ TX3 2ф 25А Legrand (5)",
     "rawName": "404044 АВ TX3 2ф 25А Legrand (5)",
@@ -25908,6 +26206,7 @@
     "certificate": null
   },
   {
+    "id": 515232,
     "sku": "404045",
     "name": "АВ TX3 2ф 32А Legrand (5)",
     "rawName": "404045 АВ TX3 2ф 32А Legrand (5)",
@@ -26020,6 +26319,7 @@
     "certificate": null
   },
   {
+    "id": 515233,
     "sku": "404046",
     "name": "АВ TX3 2ф 40А Legrand (5)",
     "rawName": "404046 АВ TX3 2ф 40А Legrand (5)",
