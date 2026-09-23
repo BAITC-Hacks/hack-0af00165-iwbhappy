@@ -1,4 +1,4 @@
-import { consumeProposal, getCart } from "@/lib/db";
+import { consumeProposal, findRelated, getCart } from "@/lib/db";
 import { log, newTraceId } from "@/lib/logger";
 import { cartUrl } from "@/lib/agent/tools";
 
@@ -41,6 +41,19 @@ export async function POST(req: Request) {
   });
 
   const first = res.lines[0];
+
+  // Сопутствующие — как в confirm_add из чата: только для одной позиции,
+  // без того, что уже в корзине. Интерфейс показывает их подсказками;
+  // нажатие — обычная реплика в чат, то есть новое предложение и новое
+  // подтверждение. Сама кнопка ничего сверх подтверждённого не добавляет.
+  let related: Array<{ sku: string; name: string; price: number; reason: string }> = [];
+  if (res.lines.length === 1 && first && first.added > 0) {
+    const inCart = new Set(res.cart.lines.map((l) => l.sku));
+    related = (await findRelated(first.sku, 3)).items
+      .filter((p) => !inCart.has(p.sku))
+      .slice(0, 2)
+      .map((p) => ({ sku: p.sku, name: p.name, price: p.price, reason: p.reason }));
+  }
   return Response.json({
     cart: res.cart,
     lines: res.lines,
@@ -50,5 +63,6 @@ export async function POST(req: Request) {
     capped: res.lines.some((l) => l.capped),
     availableQty: first?.available ?? 0,
     cartUrl: await cartUrl(sessionId, new URL(req.url).origin),
+    related,
   });
 }
