@@ -121,6 +121,14 @@ CREATE TABLE IF NOT EXISTS cart_links (
   session_id TEXT PRIMARY KEY,
   token TEXT NOT NULL UNIQUE
 );
+
+-- Версия схемы. Раньше жила в PRAGMA user_version, но на проде база
+-- теперь удалённая (Turso), а поддержку этой команды там мы не проверяли.
+-- Обычная таблица работает одинаково с файлом и с сервером.
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 // --------------------------------------------------------------------------
@@ -197,21 +205,29 @@ export function ensureDb(): Promise<void> {
       // перезапуск. Без этой проверки приложение падает на INSERT в таблицу
       // старой формы, и ошибка выглядит как поломка кода, а не как мусор в .data.
       await c.executeMultiple(SCHEMA);
-      const ver = await c.execute("PRAGMA user_version");
-      if (Number(ver.rows[0]?.user_version ?? 0) !== SCHEMA_VERSION) {
+      const ver = await c.execute("SELECT value FROM meta WHERE key = 'schema_version'");
+      if (String(ver.rows[0]?.value ?? "") !== String(SCHEMA_VERSION)) {
         await c.executeMultiple(
           "DROP TABLE IF EXISTS products; DROP TABLE IF EXISTS cart_items; DROP TABLE IF EXISTS proposals; DROP TABLE IF EXISTS cart_links;",
         );
         await c.executeMultiple(SCHEMA);
-        await c.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+        await c.execute({
+          sql: "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', ?)",
+          args: [String(SCHEMA_VERSION)],
+        });
       }
 
       const n = await c.execute("SELECT COUNT(*) AS n FROM products");
       if (Number(n.rows[0]?.n ?? 0) !== catalog.length) {
-        await c.execute("DELETE FROM products");
-        for (let i = 0; i < catalog.length; i += 100) {
-          await c.batch(
-            catalog.slice(i, i + 100).map((p) => ({
+        // Одна транзакция на удаление и весь каталог. С внешней базой
+        // (Turso на Vercel) несколько экземпляров стартуют одновременно:
+        // при вставке порциями второй видел неполный каталог, удалял его
+        // и начинал заново — а агент в это окно отвечал «не найдено».
+        // В транзакции другие видят либо старый каталог целиком, либо новый.
+        await c.batch(
+          [
+            { sql: "DELETE FROM products", args: [] },
+            ...catalog.map((p) => ({
               sql: `INSERT OR REPLACE INTO products
                     (sku,id,name,raw_name,category,category_title,brand,specs,price,stock,available,status,alternatives,min_order,url,certificate,description)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -223,9 +239,9 @@ export function ensureDb(): Promise<void> {
                 p.description ?? null,
               ],
             })),
-            "write",
-          );
-        }
+          ],
+          "write",
+        );
       }
     })().catch((e) => { ready = null; throw e; });
   }
