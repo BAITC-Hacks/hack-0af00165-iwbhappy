@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
+    "mock-check": "tsx scripts/mock-check.ts",
     "deploy": "vercel --prod",
     "demo": "tsx scripts/demo.ts",
     "seed": "tsx scripts/seed-from-api.ts",
