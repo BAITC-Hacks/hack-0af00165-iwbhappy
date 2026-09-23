@@ -500,8 +500,8 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   html, body { max-width: 100%; overflow-x: hidden; }
   .store-shell {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto minmax(100dvh, auto);
-    grid-template-areas: "header" "cart" "catalog" "chat";
+    grid-template-rows: auto auto calc(100dvh - 110px) auto;
+    grid-template-areas: "header" "cart" "chat" "catalog";
     gap: 9px;
     padding: 8px;
     overflow-x: hidden;
@@ -535,7 +535,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   .catalog-zone, .chat-zone { border-radius: 13px; }
   .catalog-zone { max-height: none; }
   .catalog-zone, .product-grid, .product-card { min-width: 0; max-width: 100%; }
-  .product-grid { grid-template-columns: minmax(0, 1fr); width: 100%; max-height: 72dvh; }
+  .product-grid { grid-template-columns: minmax(0, 1fr); width: 100%; max-height: 60dvh; }
   .product-card { min-height: 164px; overflow: hidden; }
   .product-card h3, .product-kind { overflow-wrap: anywhere; }
   .product-card-bottom button { display: none; }
