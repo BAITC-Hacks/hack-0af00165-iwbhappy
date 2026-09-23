@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentEvent } from "@/lib/agent/loop";
 import type { Cart } from "@/lib/db";
 import type { Msg } from "@/lib/llm/types";
+import { redactPayment } from "@/lib/redact";
 import CartPanel from "./CartPanel";
 import ConfirmCard, { type ProposalLineView, type ProposalView } from "./ConfirmCard";
 import ProductGrid, { type ProductPreview } from "./ProductGrid";
@@ -226,9 +227,13 @@ export default function AgentApp() {
     }
 
     const items = chatItems.map((item): ChatItem => {
-      if (item.kind !== "message" || !item.imageUrl) return item;
+      if (item.kind !== "message") return item;
+      // Платёжные данные не сохраняем даже в браузере клиента — та же маска,
+      // что на сервере. История для модели приходит с сервера уже с маской.
+      const content = item.role === "user" ? redactPayment(item.content) : item.content;
+      if (!item.imageUrl) return content === item.content ? item : { ...item, content };
       const { imageUrl: _imageUrl, ...message } = item;
-      return { ...message, content: `${message.content}\n[фото]` };
+      return { ...message, content: `${content}\n[фото]` };
     });
     try {
       localStorage.setItem(`hackalem.chat.${sessionId}`, JSON.stringify({ items, history: historyRef.current }));
