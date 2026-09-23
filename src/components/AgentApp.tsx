@@ -440,7 +440,7 @@ export default function AgentApp() {
       } catch (error) {
         setChatItems((items) => [
           ...items.filter((item) => !(item.kind === "message" && item.id === assistantId && item.content.length === 0)),
-          { id: makeMessageId("error"), kind: "message", role: "error", content: lang === "ru" ? `${tr(lang, "connectionLost")}: ${error instanceof Error ? error.message : String(error)}` : tr(lang, "connectionLost") },
+          { id: makeMessageId("error"), kind: "message", role: "error", content: `${tr(lang, "connectionLost")}: ${error instanceof Error ? error.message : String(error)}` },
         ]);
       } finally {
         setBusy(false);
@@ -652,7 +652,7 @@ export default function AgentApp() {
         <div className="zone-heading chat-heading">
           <div><span className="eyebrow">{tr(lang, "assistant")}</span><h2 id="chat-title">{tr(lang, "chatTitle")}</h2></div>
           <button className="manager-button" type="button" onClick={() => void send(tr(lang, "managerQuestion"))} disabled={busy || uploading || resetting}>{tr(lang, "ctaManager")}</button>
-          <button className="new-chat-button" type="button" onClick={() => void reset()} disabled={busy || resetting}>{tr(lang, "newChat")}</button>
+          <button className="new-chat-button" type="button" onClick={() => void reset()} disabled={busy || uploading || resetting} aria-label={tr(lang, "newChat")}>{tr(lang, "newChat")}</button>
           <span className={`agent-status ${busy ? "active" : ""}`}>{busy ? (phase ? tr(lang, phase as "thinking" | "searching" | "answering") : tr(lang, "working")) : tr(lang, "ready")}</span>
         </div>
 
