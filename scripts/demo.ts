@@ -11,6 +11,17 @@
 import { readFileSync } from "node:fs";
 
 const live = process.argv.includes("--live");
+/** Прогон на казахском: тот же сценарий плюс шестой шаг — эскалация. Имеет смысл только с --live. */
+const kk = process.argv.includes("--kk");
+
+const KK_SCRIPT = [
+  "{SKU_IN} артикулы туралы айтыңыз: қоймада бар ма, сипаттамалары қандай, сертификаты бар ма?",
+  "{SKU_OUT} бар ма? Жоқ болса, орнына не ұсынасыз және неге?",
+  "Төлем және жеткізу шарттары қандай?",
+  "{SKU_IN} себетке қосыңыз, 2 дана",
+  "Иә, қосыңыз",
+  "Нысанға 500 дана керек, жеңілдік бола ма? Менеджермен сөйлескім келеді.",
+];
 process.env.LLM_MODE = live ? "live" : "mock";
 process.env.DB_URL = "file:./.data/demo.db";
 
@@ -56,7 +67,10 @@ async function main() {
   await DB.resetSession(sessionId);
 
   const { inStock, outOfStock } = await DB.pickDemoSkus();
-  const script = fillDemoPrompts(inStock, outOfStock);
+  const script = kk
+    ? KK_SCRIPT.map((t) => t.replace("{SKU_IN}", inStock || "—").replace("{SKU_OUT}", outOfStock || "—"))
+    : fillDemoPrompts(inStock, outOfStock);
+  const answers: string[] = [];
 
   console.log(`${B}Демо-сценарий — ИИ-ассистент ekt.kz${X}`);
   console.log(`${D}режим: ${live ? "живая модель" : "записанный"} · каталог: ${DB.CATALOG_SIZE} · артикулы: ${inStock} / ${outOfStock}${X}`);
@@ -90,6 +104,7 @@ async function main() {
     }
 
     toolsPerStep.push(called);
+    answers.push(answer);
     console.log(`${answer.trim() || "(пустой ответ)"}`);
     if (delta) history.push(...delta);
   }
@@ -109,6 +124,16 @@ async function main() {
   ok("шаг 4 НЕ подтверждал сам", !toolsPerStep[3]?.includes("confirm_add"),
     toolsPerStep[3]?.includes("confirm_add") ? "нарушение правила раздела 6!" : "");
   ok("шаг 5 подтвердил добавление", toolsPerStep[4]?.includes("confirm_add"), toolsPerStep[4]?.join(", "));
+
+  if (kk) {
+    // Казахские буквы, которых нет в русском: признак, что ответ не на русском.
+    const kazakh = (t: string) => /[әғқңөұүһі]/i.test(t);
+    const inKazakh = answers.filter(kazakh).length;
+    ok("ответы на казахском", inKazakh >= answers.length - 1, `${inKazakh} из ${answers.length}`);
+    ok("шаг 6 дал контакты менеджера", toolsPerStep[5]?.includes("get_terms") && /\+7/.test(answers[5] ?? ""),
+      toolsPerStep[5]?.join(", "));
+    ok("шаг 6 ничего не добавил в корзину", !toolsPerStep[5]?.includes("confirm_add"));
+  }
 
   const cart = await DB.getCart(sessionId);
   ok("корзина непуста в конце", cart.count > 0, `${cart.count} шт.`);

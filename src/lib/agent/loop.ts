@@ -33,7 +33,31 @@ export type AgentInput = {
   /** История без системного сообщения: её хранит клиент, сервер не держит состояние диалога. */
   history: Msg[];
   message: string;
+  /** Адрес приложения, для полной ссылки на корзину. */
+  origin?: string;
 };
+
+/**
+ * Язык ответа определяет сервер, а не модель. Правило «отвечай на языке
+ * клиента» в промпте живая модель игнорировала: промпт и данные каталога
+ * на русском и перетягивают. Признак казахского — буквы, которых нет
+ * в русском алфавите.
+ */
+const KAZAKH_LETTERS = /[әғқңөұүһі]/i;
+
+export function detectLang(message: string, history: Msg[]): "kk" | "ru" {
+  if (KAZAKH_LETTERS.test(message)) return "kk";
+  // В реплике нет букв вовсе («R9F12110», «2») — язык берём из прошлой реплики клиента.
+  if (!/[a-zа-яё]/i.test(message.replace(/[a-z]*\d[a-z\d-]*/gi, ""))) {
+    for (let i = history.length - 1; i >= 0; i--) {
+      const m = history[i];
+      if (m.role === "user" && typeof m.content === "string") return KAZAKH_LETTERS.test(m.content) ? "kk" : "ru";
+    }
+  }
+  return "ru";
+}
+
+const KAZAKH_TURN = "Клиент пишет по-казахски. Весь ответ на этот ход пиши на казахском языке. Названия товаров, артикулы, характеристики и ссылки оставляй как в инструментах, не переводи.";
 
 // Корзину меняет ровно один инструмент — это и есть инвариант раздела 6.
 const CART_TOUCHING = new Set(["confirm_add"]);
@@ -48,11 +72,15 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
     sessionId: input.sessionId,
     lastUserMessage: input.message,
     turnStartedAt,
+    origin: input.origin,
   };
 
   const messages: Msg[] = [
     { role: "system", content: SYSTEM_PROMPT },
     ...input.history,
+    ...(detectLang(input.message, input.history) === "kk"
+      ? [{ role: "system", content: KAZAKH_TURN } as Msg]
+      : []),
     { role: "user", content: input.message },
   ];
 

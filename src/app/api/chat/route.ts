@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
       try {
-        for await (const event of runAgent({ sessionId, history, message })) send(event);
+        for await (const event of runAgent({ sessionId, history, message, origin: new URL(req.url).origin })) send(event);
       } catch (e) {
         send({ type: "error", message: (e as Error).message });
       } finally {

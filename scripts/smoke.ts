@@ -173,6 +173,26 @@ async function main() {
   const url = String(link.data.url ?? "");
   check("ссылка выдана", link.ok && url.length > 0, url);
   check("ссылка отражает актуальную корзину", Number(link.data.itemsCount) === cart.count);
+  const full = await call("get_cart_link", {}, { ...ctx("дай ссылку", laterThan(turnA, 4000)), origin: "https://hackalem10.vercel.app" });
+  const fullUrl = String(full.data.url ?? "");
+  check("ссылка полная, с адресом приложения — модели нечего достраивать",
+    fullUrl.startsWith("https://hackalem10.vercel.app/cart?session="), fullUrl);
+
+  // ---- 5а. Язык ответа определяет сервер -----------------------------------
+  console.log(`
+${B}5а. Язык ответа${X}`);
+  const { detectLang } = await import("../src/lib/agent/loop");
+  const kkHistory = [{ role: "user" as const, content: "Сәлеметсіз бе, автомат керек" }];
+  for (const [text, hist, expected] of [
+    ["Иә, қосыңыз", [], "kk"],
+    ["Да, добавь", [], "ru"],
+    ["R9F12110", kkHistory, "kk"],
+    ["2", kkHistory, "kk"],
+    ["R9F12110", [], "ru"],
+    ["а по-русски можно?", kkHistory, "ru"],
+  ] as Array<[string, typeof kkHistory, "kk" | "ru"]>) {
+    check(`«${text}»${hist.length ? " после казахской реплики" : ""} → ${expected}`, detectLang(text, hist) === expected);
+  }
 
   // ---- 6. Спецификация из файла -------------------------------------------
   console.log(`

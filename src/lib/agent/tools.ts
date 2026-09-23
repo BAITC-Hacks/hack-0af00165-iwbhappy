@@ -17,6 +17,12 @@ export type ToolContext = {
   lastUserMessage: string;
   /** Момент начала обработки текущей реплики — граница «прошлый ход / этот ход». */
   turnStartedAt: string;
+  /**
+   * Адрес, с которого пришёл запрос, — чтобы ссылка на корзину была полной.
+   * Относительную ссылку модель «достраивает» сама и однажды приписала к ней
+   * домен ekt.kz, где нашей корзины нет.
+   */
+  origin?: string;
 };
 
 export type ToolResult = {
@@ -441,7 +447,8 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
     case "get_cart_link": {
       NoArgs.safeParse(parsed);
       const cart = await getCart(ctx.sessionId);
-      const link = `/cart?session=${encodeURIComponent(ctx.sessionId)}`;
+      const path = `/cart?session=${encodeURIComponent(ctx.sessionId)}`;
+      const link = ctx.origin ? new URL(path, ctx.origin).href : path;
       return {
         kind: "ok",
         result: {
