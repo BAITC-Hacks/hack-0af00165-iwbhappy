@@ -78,6 +78,10 @@ async function main() {
     ["нет", false], ["не надо", false], ["пока не надо", false], ["отмени", false],
     ["а можно добавить?", false], ["если есть на складе, добавь", false],
     ["", false], ["расскажи про характеристики", false],
+    // қазақша: без казахских букв в классе символов «қос» режется на «ос»
+    ["иә", true], ["иә, қосыңыз", true], ["жарайды", true], ["келісемін", true],
+    ["жоқ", false], ["керек емес", false], ["қоспаңыз", false],
+    ["себетке қосуға бола ма", false], ["егер қоймада бар болса, қос", false],
   ] as Array<[string, boolean]>) {
     check(`«${text || "(пусто)"}» → ${expected ? "согласие" : "не согласие"}`, T.isAffirmative(text) === expected);
   }
@@ -122,6 +126,9 @@ async function main() {
   check("условия получены", terms.ok && list.length > 0);
   check("ответ содержательный (>40 символов)", String(list[0]?.text ?? "").length > 40,
     String(list[0]?.text ?? "").slice(0, 60) + "…");
+  const contacts = await call("get_terms", { topic: "contacts" }, ctx("как связаться с менеджером?", t3));
+  const cText = String(((contacts.data.terms ?? []) as Array<Record<string, unknown>>)[0]?.text ?? "");
+  check("эскалация: есть контакты менеджера", contacts.ok && /\+7/.test(cText) && /@ekt\.kz/.test(cText));
 
   // ---- 4. Правило подтверждения — главное ---------------------------------
   console.log(`\n${B}4. Правило подтверждения${X}`);

@@ -460,6 +460,9 @@ const TERM_TITLES: Record<string, string> = {
   delivery: "Доставка",
   min_order: "Минимальная партия",
   pickup: "Самовывоз",
+  warranty: "Гарантия и сертификаты",
+  returns: "Возврат и обмен",
+  contacts: "Связаться с менеджером",
 };
 
 /**

@@ -44,17 +44,29 @@ const money = (n: number) => `${n.toLocaleString("ru-RU")} ₸`;
  * текст разбирается на слова, а не матчится регулярками с границами.
  */
 const AFFIRM = new Set([
-  "да", "ага", "угу", "ок", "окей", "ok", "okay", "yes", "хорошо", "хорошо",
+  "да", "ага", "угу", "ок", "окей", "ok", "okay", "yes", "хорошо",
   "давай", "давайте", "добавь", "добавьте", "добавляй", "подтверждаю",
   "беру", "берем", "берём", "согласен", "согласна", "верно", "точно", "именно", "+",
+  // қазақша
+  "иә", "ия", "иа", "йә", "жарайды", "мақұл", "келісемін", "болады", "дұрыс",
+  "қос", "қосыңыз", "қосыңызшы", "қосшы", "аламын", "алам",
 ]);
 
 const NEGATE = new Set([
   "не", "нет", "нельзя", "отмена", "отмени", "отменить", "отставить",
   "стоп", "погоди", "подожди", "рано", "пока", "неа",
+  // қазақша: «жоқ», «керек емес», «қоспа», «тоқта», «әлі» (пока)
+  "жоқ", "емес", "қоспа", "қоспаңыз", "тоқта", "тоқтат", "әлі", "болдырма",
 ]);
 
-const CONDITIONAL = new Set(["если", "когда", "вдруг", "может", "наверное"]);
+/**
+ * Условные слова и вопросительные частицы. Казахский вопрос часто
+ * обходится без «?»: «қосуға бола ма» — частица «ма» делает его вопросом.
+ */
+const CONDITIONAL = new Set([
+  "если", "когда", "вдруг", "может", "наверное",
+  "егер", "мүмкін", "бәлкім", "ма", "ме", "ба", "бе", "па", "пе",
+]);
 
 /** Консервативно: сомнительное трактуем как отказ. */
 export function isAffirmative(raw: string): boolean {
@@ -62,7 +74,10 @@ export function isAffirmative(raw: string): boolean {
   if (!text) return false;
   if (text.includes("?")) return false; // вопрос — не согласие
 
-  const words = text.split(/[^a-zа-яё0-9+]+/i).filter(Boolean);
+  // Казахские буквы (ә ғ қ ң ө ұ ү һ і) не входят в диапазон а-я. Без них
+  // в классе символов «қос» разрезается на «ос», и согласие не узнаётся.
+
+  const words = text.split(/[^a-zа-яёәғқңөұүһі0-9+]+/i).filter(Boolean);
   if (words.length === 0) return false;
   if (words.length > 12) return false; // длинная реплика — это не «да»
 
@@ -81,7 +96,7 @@ const SearchArgs = z.object({
   category: z.string().max(80).optional(),
 });
 const SkuArgs = z.object({ sku: z.string().min(1).max(60) });
-const TermsArgs = z.object({ topic: z.enum(["payment", "delivery", "min_order", "pickup", "all"]) });
+const TermsArgs = z.object({ topic: z.enum(["payment", "delivery", "min_order", "pickup", "warranty", "returns", "contacts", "all"]) });
 const ProposeArgs = z.object({
   sku: z.string().min(1).max(60),
   qty: z.number().int().min(1).max(999),
@@ -135,11 +150,11 @@ export const TOOL_SPECS: ToolSpec[] = [
   },
   {
     name: "get_terms",
-    description: "Условия покупки: оплата, доставка, минимальная партия, самовывоз.",
+    description: "Условия покупки с сайта ekt.kz: оплата, доставка, самовывоз, минимальная партия, гарантия, возврат, контакты менеджера.",
     parameters: {
       type: "object",
       properties: {
-        topic: { type: "string", enum: ["payment", "delivery", "min_order", "pickup", "all"] },
+        topic: { type: "string", enum: ["payment", "delivery", "min_order", "pickup", "warranty", "returns", "contacts", "all"] },
       },
       required: ["topic"],
       additionalProperties: false,
