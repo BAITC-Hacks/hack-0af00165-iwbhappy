@@ -355,9 +355,21 @@ const BASIS_TEXT: Record<Basis, string> = {
 function explain(base: Product, alt: Product, basis: Basis): string {
   const parts: string[] = [BASIS_TEXT[basis]];
 
-  const same = Object.keys(base.specs).filter((k) => alt.specs[k] && alt.specs[k] === base.specs[k]);
+  const common = Object.keys(base.specs).filter((k) => alt.specs[k]);
+  const same = common.filter((k) => alt.specs[k] === base.specs[k]);
+  const diff = common.filter((k) => alt.specs[k] !== base.specs[k]);
+
   if (same.length) {
     parts.push(`совпадают ${same.slice(0, 3).map((k) => `${labelSpec(k)} (${alt.specs[k]})`).join(", ")}`);
+  }
+
+  // Расхождения называем вслух. Для автоматического выключателя подмена
+  // номинального тока — не деталь, а другой товар: предложить вместо 20 А
+  // десятиамперный и промолчать значит выдать недостоверную рекомендацию.
+  if (diff.length) {
+    parts.push(
+      `отличается ${diff.slice(0, 2).map((k) => `${labelSpec(k)}: ${base.specs[k]} → ${alt.specs[k]}`).join(", ")}`,
+    );
   }
 
   if (base.price > 0) {

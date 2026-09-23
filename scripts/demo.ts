@@ -8,9 +8,35 @@
  * порядке. Заодно это репетиция защиты: те же пять реплик, что на кнопках.
  */
 
+import { readFileSync } from "node:fs";
+
 const live = process.argv.includes("--live");
 process.env.LLM_MODE = live ? "live" : "mock";
 process.env.DB_URL = "file:./.data/demo.db";
+
+/**
+ * `.env.local` читает только Next — tsx о нём ничего не знает, и без
+ * этого живой прогон падает с «ключ пуст», хотя ключ на месте.
+ * Уже выставленные переменные не трогаем: строки выше заданы намеренно.
+ */
+function loadEnvLocal(file = ".env.local"): void {
+  let raw: string;
+  try {
+    raw = readFileSync(file, "utf8");
+  } catch {
+    return;
+  }
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    if (value && process.env[key] === undefined) process.env[key] = value;
+  }
+}
+loadEnvLocal();
 
 import type { Msg } from "../src/lib/llm/types";
 
