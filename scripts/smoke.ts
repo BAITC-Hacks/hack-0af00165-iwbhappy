@@ -176,7 +176,18 @@ async function main() {
   const full = await call("get_cart_link", {}, { ...ctx("дай ссылку", laterThan(turnA, 4000)), origin: "https://hackalem10.vercel.app" });
   const fullUrl = String(full.data.url ?? "");
   check("ссылка полная, с адресом приложения — модели нечего достраивать",
-    fullUrl.startsWith("https://hackalem10.vercel.app/cart?session="), fullUrl);
+    fullUrl.startsWith("https://hackalem10.vercel.app/cart?c="), fullUrl);
+
+  // ТЗ §9: защита от несанкционированного изменения корзины. sessionId —
+  // ключ, которым через чат меняют корзину; ссылкой клиент делится.
+  check("в ссылке на корзину нет sessionId", !url.includes(SESSION) && !fullUrl.includes(SESSION));
+  const token = new URL(fullUrl).searchParams.get("c") ?? "";
+  check("токен ссылки открывает именно эту корзину", (await DB.getSessionByCartToken(token)) === SESSION);
+  check("выдуманный токен ничего не открывает",
+    (await DB.getSessionByCartToken("00000000-0000-0000-0000-000000000000")) === null
+      && (await DB.getSessionByCartToken("' OR 1=1 --")) === null);
+  check("ссылка стабильна между вызовами",
+    String((await call("get_cart_link", {}, ctx("ссылку", laterThan(turnA, 4000)))).data.url) === url);
 
   // ---- 5б. Сопутствующие товары и чистота аналогов --------------------------
   console.log(`

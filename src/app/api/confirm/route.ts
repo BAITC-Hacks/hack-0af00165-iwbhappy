@@ -1,5 +1,6 @@
 import { consumeProposal, getCart } from "@/lib/db";
 import { log, newTraceId } from "@/lib/logger";
+import { cartUrl } from "@/lib/agent/tools";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,5 +49,6 @@ export async function POST(req: Request) {
     added: first ? { sku: first.sku, name: first.name, qty: first.added } : null,
     capped: res.lines.some((l) => l.capped),
     availableQty: first?.available ?? 0,
+    cartUrl: await cartUrl(sessionId, new URL(req.url).origin),
   });
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createClient, type Client } from "@libsql/client";
 import { CONFIG } from "./config";
 import rawCatalog from "../../data/catalog.json";
@@ -68,7 +69,7 @@ function db(): Client {
   return client;
 }
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS products (
@@ -113,6 +114,13 @@ CREATE TABLE IF NOT EXISTS proposals (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_proposals_session ON proposals(session_id);
+
+-- Ссылка на корзину только для просмотра. sessionId в ссылку не кладём:
+-- он даёт право менять корзину через чат, а ссылкой клиент делится.
+CREATE TABLE IF NOT EXISTS cart_links (
+  session_id TEXT PRIMARY KEY,
+  token TEXT NOT NULL UNIQUE
+);
 `;
 
 // --------------------------------------------------------------------------
@@ -192,7 +200,7 @@ export function ensureDb(): Promise<void> {
       const ver = await c.execute("PRAGMA user_version");
       if (Number(ver.rows[0]?.user_version ?? 0) !== SCHEMA_VERSION) {
         await c.executeMultiple(
-          "DROP TABLE IF EXISTS products; DROP TABLE IF EXISTS cart_items; DROP TABLE IF EXISTS proposals;",
+          "DROP TABLE IF EXISTS products; DROP TABLE IF EXISTS cart_items; DROP TABLE IF EXISTS proposals; DROP TABLE IF EXISTS cart_links;",
         );
         await c.executeMultiple(SCHEMA);
         await c.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -757,12 +765,35 @@ export async function pickDemoSkus(): Promise<{ inStock: string; outOfStock: str
   };
 }
 
+/**
+ * Токен ссылки на корзину. Ссылка даёт только чтение: по токену нельзя
+ * восстановить sessionId, а без sessionId нельзя ничего изменить.
+ */
+export async function getCartViewToken(sessionId: string): Promise<string> {
+  await ensureDb();
+  await db().execute({
+    sql: "INSERT OR IGNORE INTO cart_links (session_id, token) VALUES (?, ?)",
+    args: [sessionId, randomUUID()],
+  });
+  const r = await db().execute({ sql: "SELECT token FROM cart_links WHERE session_id = ?", args: [sessionId] });
+  return String(r.rows[0]?.token ?? "");
+}
+
+export async function getSessionByCartToken(token: string): Promise<string | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return null;
+  await ensureDb();
+  const r = await db().execute({ sql: "SELECT session_id FROM cart_links WHERE token = ?", args: [token] });
+  return r.rows[0] ? String(r.rows[0].session_id) : null;
+}
+
 export async function resetSession(sessionId: string): Promise<void> {
   await ensureDb();
   await db().batch(
     [
       { sql: "DELETE FROM cart_items WHERE session_id = ?", args: [sessionId] },
       { sql: "DELETE FROM proposals WHERE session_id = ?", args: [sessionId] },
+      // Старая ссылка на корзину после сброса перестаёт открываться.
+      { sql: "DELETE FROM cart_links WHERE session_id = ?", args: [sessionId] },
     ],
     "write",
   );

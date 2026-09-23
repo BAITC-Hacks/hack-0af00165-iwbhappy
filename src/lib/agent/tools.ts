@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  consumeProposal, createProposal, findAlternatives, findRelated, getCart, getProduct,
+  consumeProposal, createProposal, findAlternatives, findRelated, getCart, getCartViewToken, getProduct,
   getProposal, getTerms, labelSpec, searchCatalog, type Product,
 } from "../db";
 import type { ToolSpec } from "../llm/types";
@@ -308,10 +308,15 @@ async function runPropose(a: z.infer<typeof ProposeArgs>, ctx: ToolContext): Pro
   };
 }
 
-/** Ссылка на корзину — одна функция для confirm_add и get_cart_link. */
-function cartUrl(ctx: ToolContext): string {
-  const path = `/cart?session=${encodeURIComponent(ctx.sessionId)}`;
-  return ctx.origin ? new URL(path, ctx.origin).href : path;
+/**
+ * Ссылка на корзину — одна функция для confirm_add, get_cart_link,
+ * кнопки подтверждения и панели корзины. В ссылке токен только для
+ * чтения, а не sessionId: sessionId даёт право менять корзину через чат,
+ * а ссылкой клиент делится.
+ */
+export async function cartUrl(sessionId: string, origin?: string): Promise<string> {
+  const path = `/cart?c=${await getCartViewToken(sessionId)}`;
+  return origin ? new URL(path, origin).href : path;
 }
 
 async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Promise<ToolResult> {
@@ -372,7 +377,7 @@ async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Pro
       cart: res.cart,
       // Ссылка сразу здесь: модель пропускала get_cart_link и сочиняла
       // адрес сама — дважды это был несуществующий https://ekt.kz/cart.
-      cartUrl: cartUrl(ctx),
+      cartUrl: await cartUrl(ctx.sessionId, ctx.origin),
       lines: res.lines,
       addedTotal: res.addedTotal,
       ...(related.length
@@ -509,7 +514,7 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
     case "get_cart_link": {
       NoArgs.safeParse(parsed);
       const cart = await getCart(ctx.sessionId);
-      const link = cartUrl(ctx);
+      const link = await cartUrl(ctx.sessionId, ctx.origin);
       return {
         kind: "ok",
         result: {
