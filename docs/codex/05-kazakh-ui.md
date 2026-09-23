@@ -61,7 +61,7 @@ src/components/ProductGrid.tsx, src/app/cart/page.tsx, src/app/globals.css.
 ПРОВЕРКА:
   npx tsc --noEmit     — ноль ошибок
   npm run build        — проходит (сначала остановить npm run dev)
-  npm run smoke        — остаётся зелёным (56 проверок)
+  npm run smoke        — остаётся зелёным (63 проверки)
 
 Руками: переключить KZ, нажать подсказку «{SKU_IN} себетке қосыңыз» —
 появилась карточка с кнопками «Иә, қосу / Жоқ», корзина не изменилась.
