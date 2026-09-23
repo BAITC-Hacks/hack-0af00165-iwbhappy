@@ -137,7 +137,10 @@ async function main() {
 
   const cart = await DB.getCart(sessionId);
   ok("корзина непуста в конце", cart.count > 0, `${cart.count} шт.`);
-  ok("ссылка на корзину выдана", flat.includes("get_cart_link"));
+  // Проверяем сам ответ, а не факт вызова: ссылка приходит и в confirm_add.
+  const linkAnswer = answers[4] ?? "";
+  ok("ссылка на корзину выдана", linkAnswer.includes("/cart?session="), linkAnswer.match(/\S*\/cart\S*/)?.[0] ?? "нет ссылки");
+  ok("ссылка не выдуманная", !/ekt\.kz\/(cart|basket|personal)/i.test(answers.join(" ")));
 
   console.log(
     errors === 0

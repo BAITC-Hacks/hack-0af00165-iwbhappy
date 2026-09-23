@@ -342,7 +342,7 @@ export function labelSpec(key: string): string {
 type Basis = "partner" | "category" | "type" | "brand" | "price";
 
 const BASIS_TEXT: Record<Basis, string> = {
-  partner: "отмечен в каталоге как рекомендуемая замена",
+  partner: "партнёр рекомендует его к этому товару, и он из того же раздела каталога",
   category: "тот же раздел каталога",
   type: "тот же тип изделия",
   brand: "тот же производитель",
@@ -394,6 +394,31 @@ function explain(base: Product, alt: Product, basis: Basis): string {
  * срезе каталога легко попадается позиция, у которой в её разделе вообще
  * нет ничего в наличии. Вернуть пустой список означает провалить проверку.
  */
+/**
+ * Сопутствующие товары — то, что партнёр рекомендует к позиции
+ * (properties.RECOMMEND). Только в наличии. Обоснование честное: связь
+ * задана в каталоге ekt.kz, а не придумана нами.
+ */
+export async function findRelated(sku: string, limit = 3): Promise<{ base: Product | null; items: Alternative[] }> {
+  await ensureDb();
+  const base = await getProduct(sku);
+  if (!base) return { base: null, items: [] };
+
+  const items: Alternative[] = [];
+  const seen = new Set<string>([base.sku]);
+  for (const ref of base.alternatives) {
+    if (items.length >= limit) break;
+    const p = await getProduct(ref);
+    if (!p || seen.has(p.sku) || p.available <= 0) continue;
+    seen.add(p.sku);
+    items.push({
+      ...p,
+      reason: `в каталоге ekt.kz рекомендуется вместе с «${base.name}»${p.categoryTitle ? `; это ${p.categoryTitle.toLowerCase()}` : ""}`,
+    });
+  }
+  return { base, items };
+}
+
 export async function findAlternatives(sku: string, limit = 3): Promise<{ base: Product | null; items: Alternative[] }> {
   await ensureDb();
   const base = await getProduct(sku);
@@ -408,11 +433,15 @@ export async function findAlternatives(sku: string, limit = 3): Promise<{ base: 
     picked.push({ ...p, reason: explain(base, p, basis) });
   };
 
-  // Ступень 1 — рекомендации партнёра (в выгрузке это id товаров ekt).
+  // Ступень 1 — рекомендации партнёра, но ТОЛЬКО из того же раздела.
+  // RECOMMEND в данных ekt.kz — это сопутствующие товары, а не замены:
+  // все связи в выгрузке ведут из автоматов и УЗО на клеммы WAGO. Без
+  // этой проверки клемма шла первым «аналогом» автомата. Сопутствующие
+  // отдаёт findRelated.
   for (const ref of base.alternatives) {
     if (picked.length >= limit) break;
     const cand = await getProduct(ref);
-    if (cand) add(cand, "partner");
+    if (cand && cand.category === base.category) add(cand, "partner");
   }
 
   const tiers: Array<{ basis: Basis; sql: string; args: unknown[] }> = [

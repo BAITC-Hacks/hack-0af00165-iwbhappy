@@ -178,6 +178,38 @@ async function main() {
   check("ссылка полная, с адресом приложения — модели нечего достраивать",
     fullUrl.startsWith("https://hackalem10.vercel.app/cart?session="), fullUrl);
 
+  // ---- 5б. Сопутствующие товары и чистота аналогов --------------------------
+  console.log(`
+${B}5б. Сопутствующие товары${X}`);
+  {
+    // Ищем позицию, у которой рекомендация партнёра разрешается в товар в наличии.
+    const { readFileSync } = await import("node:fs");
+    const raw = JSON.parse(readFileSync("data/catalog.json", "utf8"));
+    const rows = (Array.isArray(raw) ? raw : raw.products) as Array<{ sku: string; alternatives?: unknown[] }>;
+    let baseSku = "";
+    for (const r of rows) {
+      if (!r.alternatives?.length) continue;
+      const rel = await DB.findRelated(r.sku);
+      if (rel.items.length) { baseSku = r.sku; break; }
+    }
+    check("в каталоге есть позиция с сопутствующими в наличии", baseSku !== "", baseSku);
+    if (baseSku) {
+      const rel = await call("find_related", { sku: baseSku }, ctx("что ещё к нему нужно", t3));
+      const items = (rel.data.related ?? []) as Array<Record<string, unknown>>;
+      check("сопутствующие выданы с обоснованием",
+        rel.ok && items.length > 0 && items.every((i) => String(i.reason).includes("ekt.kz")),
+        items.map((i) => i.sku).join(", "));
+      check("сопутствующие все в наличии", items.every((i) => Number(i.available) > 0));
+
+      const base = await DB.getProduct(baseSku);
+      const alts = await DB.findAlternatives(baseSku);
+      const relatedSkus = new Set(items.map((i) => String(i.sku)));
+      check("сопутствующий товар из другого раздела не выдаётся за аналог",
+        alts.items.every((a) => !relatedSkus.has(a.sku) || a.category === base?.category),
+        alts.items.map((a) => a.sku).join(", "));
+    }
+  }
+
   // ---- 5а. Язык ответа определяет сервер -----------------------------------
   console.log(`
 ${B}5а. Язык ответа${X}`);

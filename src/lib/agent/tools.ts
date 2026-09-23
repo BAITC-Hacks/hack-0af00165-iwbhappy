@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  consumeProposal, createProposal, findAlternatives, getCart, getProduct,
+  consumeProposal, createProposal, findAlternatives, findRelated, getCart, getProduct,
   getProposal, getTerms, labelSpec, searchCatalog, type Product,
 } from "../db";
 import type { ToolSpec } from "../llm/types";
@@ -155,6 +155,18 @@ export const TOOL_SPECS: ToolSpec[] = [
     },
   },
   {
+    name: "find_related",
+    description:
+      "Сопутствующие товары: то, что партнёр рекомендует покупать вместе с позицией (клеммы к автомату и т. п.). " +
+      "Только в наличии, у каждого есть reason. Это НЕ замена отсутствующему товару — для замены find_alternatives.",
+    parameters: {
+      type: "object",
+      properties: { sku: { type: "string", description: "артикул товара, к которому подбираем сопутствующие" } },
+      required: ["sku"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "get_terms",
     description: "Условия покупки с сайта ekt.kz: оплата, доставка, самовывоз, минимальная партия, гарантия, возврат, контакты менеджера.",
     parameters: {
@@ -296,6 +308,12 @@ async function runPropose(a: z.infer<typeof ProposeArgs>, ctx: ToolContext): Pro
   };
 }
 
+/** Ссылка на корзину — одна функция для confirm_add и get_cart_link. */
+function cartUrl(ctx: ToolContext): string {
+  const path = `/cart?session=${encodeURIComponent(ctx.sessionId)}`;
+  return ctx.origin ? new URL(path, ctx.origin).href : path;
+}
+
 async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Promise<ToolResult> {
   const proposal = await getProposal(ctx.sessionId, a.proposalId);
   if (!proposal) {
@@ -336,12 +354,33 @@ async function runConfirm(a: z.infer<typeof ConfirmArgs>, ctx: ToolContext): Pro
   const capped = res.lines.filter((l) => l.capped);
   const failed = res.lines.filter((l) => l.error);
 
+  // Сопутствующие кладёт сервер, а не модель по своему решению: правило
+  // «после добавления вызови find_related» живая модель пропускала.
+  // Только для одной позиции — к спецификации на 20 строк допродажа
+  // выглядит навязчиво. То, что уже в корзине, не предлагаем.
+  let related: Array<Record<string, unknown>> = [];
+  const single = res.lines.length === 1 && res.lines[0].added > 0 ? res.lines[0] : null;
+  if (single) {
+    const inCart = new Set(res.cart.lines.map((l) => l.sku));
+    const { items } = await findRelated(single.sku, 3);
+    related = items.filter((i) => !inCart.has(i.sku)).slice(0, 2).map((i) => ({ ...brief(i), reason: i.reason }));
+  }
+
   return {
     ok: true,
     data: {
       cart: res.cart,
+      // Ссылка сразу здесь: модель пропускала get_cart_link и сочиняла
+      // адрес сама — дважды это был несуществующий https://ekt.kz/cart.
+      cartUrl: cartUrl(ctx),
       lines: res.lines,
       addedTotal: res.addedTotal,
+      ...(related.length
+        ? {
+            related,
+            relatedInstruction: "после подтверждения добавления предложи сопутствующие одной фразой с обоснованием из reason; в корзину не добавляй",
+          }
+        : {}),
       notes: [
         ...capped.map((l) => `${l.name}: запрошено ${l.requested}, добавлено ${l.added} — это весь остаток`),
         ...failed.map((l) => `${l.name}: не добавлено (${l.error === "NO_STOCK" ? "нет в наличии" : "нет в каталоге"})`),
@@ -419,6 +458,29 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
       };
     }
 
+    case "find_related": {
+      const v = SkuArgs.safeParse(parsed);
+      if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
+      const { base, items } = await findRelated(v.data.sku);
+      if (!base) {
+        return { kind: "ok", result: { ok: false, data: { error: `артикул ${v.data.sku} не найден` }, summary: "артикул не найден" } };
+      }
+      return {
+        kind: "ok",
+        result: {
+          ok: true,
+          data: {
+            base: brief(base),
+            related: items.map((a) => ({ ...brief(a), reason: a.reason })),
+            instruction: items.length
+              ? "предложи клиенту одной-двумя фразами, в корзину не добавляй без его просьбы"
+              : "сопутствующих в наличии нет — не упоминай их",
+          },
+          summary: items.length ? `сопутствующих: ${items.length} (${items.map((a) => a.sku).join(", ")})` : "сопутствующих нет",
+        },
+      };
+    }
+
     case "get_terms": {
       const v = TermsArgs.safeParse(parsed);
       if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
@@ -447,8 +509,7 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
     case "get_cart_link": {
       NoArgs.safeParse(parsed);
       const cart = await getCart(ctx.sessionId);
-      const path = `/cart?session=${encodeURIComponent(ctx.sessionId)}`;
-      const link = ctx.origin ? new URL(path, ctx.origin).href : path;
+      const link = cartUrl(ctx);
       return {
         kind: "ok",
         result: {
