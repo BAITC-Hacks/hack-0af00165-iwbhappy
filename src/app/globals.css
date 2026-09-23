@@ -109,6 +109,9 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   font-weight: 650;
 }
 .secondary-button:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+.language-switch { display: inline-flex; flex: 0 0 auto; padding: 2px; border: 1px solid var(--line); border-radius: 9px; background: #f8fafc; }
+.language-switch button { min-width: 31px; min-height: 26px; padding: 3px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 10px; font-weight: 800; }
+.language-switch button[aria-pressed="true"] { background: var(--blue); color: white; }
 
 .catalog-zone, .chat-zone, .cart-zone { min-width: 0; min-height: 0; }
 .catalog-zone, .chat-zone {
@@ -159,6 +162,9 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   background: var(--green);
 }
 .agent-status.active::before { animation: status-pulse 1s ease-in-out infinite; }
+.chat-heading { gap: 8px; }
+.manager-button { flex: 0 0 auto; max-width: 170px; min-height: 31px; padding: 5px 9px; border: 1px solid #b9cef0; border-radius: 8px; background: var(--blue-soft); color: var(--blue-dark); font-size: 10px; font-weight: 750; }
+.manager-button:hover:not(:disabled) { background: var(--blue); color: white; }
 @keyframes status-pulse { 50% { transform: scale(1.7); opacity: 0.45; } }
 
 .product-grid {
@@ -498,6 +504,13 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   .catalog-badge { display: none; }
   .mode-badge { display: block; min-height: 24px; max-width: 62px; padding: 3px 8px; overflow: hidden; text-overflow: clip; }
   .secondary-button { display: none; }
+  .language-switch button { min-width: 28px; min-height: 23px; padding: 2px 4px; font-size: 9px; }
+  .chat-heading { min-height: 62px; gap: 5px; padding: 8px 9px; }
+  .chat-heading h2 { font-size: 13px; }
+  .chat-heading .eyebrow { font-size: 8px; }
+  .manager-button { max-width: 108px; min-height: 29px; padding: 4px 6px; font-size: 9px; line-height: 1.15; }
+  .chat-heading .agent-status { min-height: 24px; padding: 3px 6px; font-size: 8px; letter-spacing: 0; }
+  .chat-heading .agent-status { display: none; }
   .cart-zone { position: sticky; z-index: 20; top: 7px; }
   .trace-panel { display: none; }
   .cart-panel { border-radius: 13px; }

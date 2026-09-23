@@ -7,6 +7,7 @@ import type { Msg } from "@/lib/llm/types";
 import CartPanel from "./CartPanel";
 import ConfirmCard, { type ProposalLineView, type ProposalView } from "./ConfirmCard";
 import ProductGrid, { type ProductPreview } from "./ProductGrid";
+import { kazakhDemoPrompts, tr, type Lang } from "./i18n";
 
 type ChatMessage = {
   id: string;
@@ -52,10 +53,15 @@ function useSessionId(): string {
 
   useEffect(() => {
     const key = "hackalem.sid";
-    let stored = localStorage.getItem(key);
-    if (!stored) {
+    let stored = "";
+    try {
+      stored = localStorage.getItem(key) ?? "";
+      if (!stored) {
+        stored = makeId("session");
+        localStorage.setItem(key, stored);
+      }
+    } catch {
       stored = makeId("session");
-      localStorage.setItem(key, stored);
     }
     setSessionId(stored);
   }, []);
@@ -93,6 +99,7 @@ function readProposal(value: unknown): ProposalView | null {
 
 export default function AgentApp() {
   const sessionId = useSessionId();
+  const [lang, setLang] = useState<Lang>("ru");
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -112,6 +119,24 @@ export default function AgentApp() {
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("hackalem.lang");
+      if (saved === "ru" || saved === "kk") setLang(saved);
+    } catch {
+      // Без localStorage продолжаем работать на русском.
+    }
+  }, []);
+
+  const changeLanguage = useCallback((next: Lang) => {
+    setLang(next);
+    try {
+      localStorage.setItem("hackalem.lang", next);
+    } catch {
+      // Выбранный язык действует до закрытия страницы.
+    }
+  }, []);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -184,15 +209,13 @@ export default function AgentApp() {
         if (!cancelled) setProducts(Array.isArray(data.products) ? data.products : []);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setProductsError(error instanceof Error ? error.message : "Не удалось загрузить каталог");
-        }
+        if (!cancelled) setProductsError(error instanceof Error ? error.message : tr(lang, "productLoadFailed"));
       });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [lang]);
 
   const send = useCallback(
     async (rawMessage: string, imageUrl?: string) => {
@@ -202,7 +225,7 @@ export default function AgentApp() {
       const assistantId = makeId("assistant");
       setDraft("");
       setBusy(true);
-      setPhase("думает");
+      setPhase("thinking");
       setTrace([]);
       setChatItems((items) => [
         ...items,
@@ -251,7 +274,7 @@ export default function AgentApp() {
 
             switch (event.type) {
               case "status":
-                setPhase(event.phase === "tools" ? "проверяет каталог" : event.phase === "answering" ? "отвечает" : "думает");
+                setPhase(event.phase === "tools" ? "searching" : event.phase === "answering" ? "answering" : "thinking");
                 break;
               case "token":
                 answer += event.text;
@@ -284,7 +307,7 @@ export default function AgentApp() {
               case "error":
                 setChatItems((items) => [
                   ...items.filter((item) => !(item.kind === "message" && item.id === assistantId && item.content.length === 0)),
-                  { id: makeId("error"), kind: "message", role: "error", content: event.message },
+                  { id: makeId("error"), kind: "message", role: "error", content: lang === "ru" ? event.message : tr(lang, "connectionLost") },
                 ]);
                 break;
             }
@@ -298,7 +321,7 @@ export default function AgentApp() {
       } catch (error) {
         setChatItems((items) => [
           ...items.filter((item) => !(item.kind === "message" && item.id === assistantId && item.content.length === 0)),
-          { id: makeId("error"), kind: "message", role: "error", content: `Связь с агентом оборвалась: ${error instanceof Error ? error.message : String(error)}` },
+          { id: makeId("error"), kind: "message", role: "error", content: lang === "ru" ? `${tr(lang, "connectionLost")}: ${error instanceof Error ? error.message : String(error)}` : tr(lang, "connectionLost") },
         ]);
       } finally {
         setBusy(false);
@@ -306,7 +329,7 @@ export default function AgentApp() {
         void loadState(sessionId, true);
       }
     },
-    [applyCart, busy, loadState, sessionId],
+    [applyCart, busy, lang, loadState, sessionId],
   );
 
   const dismissProposal = useCallback((proposalId: string) => {
@@ -322,6 +345,7 @@ export default function AgentApp() {
       });
       const data = (await response.json().catch(() => ({}))) as {
         error?: string;
+        code?: string;
         cart?: Cart;
         added?: { name: string; qty: number };
         lines?: { sku: string; name: string; added: number; capped: boolean }[];
@@ -330,7 +354,16 @@ export default function AgentApp() {
       };
 
       if (data.cart) applyCart(data.cart);
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const errorKeys: Record<string, Parameters<typeof tr>[1]> = {
+          NOT_FOUND: "proposalNotFound", ALREADY_USED: "proposalAlreadyUsed",
+          NO_STOCK: "noStock", PRODUCT_GONE: "productGone",
+        };
+        const localizedError = data.code && errorKeys[data.code]
+          ? tr(lang, errorKeys[data.code])
+          : lang === "ru" ? data.error || `HTTP ${response.status}` : tr(lang, "confirmationFailed");
+        throw new Error(localizedError);
+      }
 
       dismissProposal(proposal.proposalId);
       setChatItems((items) => [
@@ -340,14 +373,14 @@ export default function AgentApp() {
           kind: "message",
           role: "notice",
           content: data.lines?.length
-            ? `Добавлено в корзину:\n${data.lines.map((line) => `• ${line.name} (${line.sku}) — ${line.added} шт.${line.capped ? " — весь доступный остаток" : ""}`).join("\n")}\nИтого добавлено: ${data.addedTotal ?? 0} шт.`
+            ? `${tr(lang, "addedToCart")}:\n${data.lines.map((line) => `• ${line.name} (${line.sku}) — ${line.added} ${tr(lang, "units")}${line.capped ? ` — ${tr(lang, "allAvailableStock")}` : ""}`).join("\n")}\n${tr(lang, "addedTotal")}: ${data.addedTotal ?? 0} ${tr(lang, "units")}`
             : data.capped
-              ? `Добавлено ${data.added?.qty ?? proposal.items[0]?.qty ?? 0} шт. — это весь доступный остаток.`
-              : `${data.added?.name ?? proposal.items[0]?.name ?? "Товар"} добавлен в корзину: ${data.added?.qty ?? proposal.items[0]?.qty ?? 0} шт.`,
+              ? `${tr(lang, "addedToCart")}: ${data.added?.qty ?? proposal.items[0]?.qty ?? 0} ${tr(lang, "units")} — ${tr(lang, "allAvailableStock")}.`
+              : `${data.added?.name ?? proposal.items[0]?.name ?? ""} — ${tr(lang, "addedToCart").toLowerCase()}: ${data.added?.qty ?? proposal.items[0]?.qty ?? 0} ${tr(lang, "units")}.`,
         },
       ]);
     },
-    [applyCart, dismissProposal, sessionId],
+    [applyCart, dismissProposal, lang, sessionId],
   );
 
   const uploadFile = useCallback(async (file: File) => {
@@ -370,7 +403,7 @@ export default function AgentApp() {
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
 
       if (data.kind === "photo") {
-        if (!data.message) throw new Error("Сервер не вернул описание фотографии.");
+        if (!data.message) throw new Error(tr(lang, "photoDescriptionMissing"));
         const bytes = new Uint8Array(await file.arrayBuffer());
         let binary = "";
         for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -379,7 +412,7 @@ export default function AgentApp() {
         return;
       }
 
-      if (data.kind !== "spec") throw new Error("Неизвестный ответ сервера загрузки.");
+      if (data.kind !== "spec") throw new Error(tr(lang, "unknownUploadResponse"));
       const matched = data.matched ?? [];
       const unmatched = data.unmatched ?? [];
       const skipped = data.skipped ?? 0;
@@ -402,20 +435,22 @@ export default function AgentApp() {
       }
 
       const notes: string[] = [];
-      if (unmatched.length) notes.push(`Не нашли в каталоге: ${unmatched.map((row) => `${row.article} (${row.qty} шт.)`).join(", ")}.`);
-      if (skipped > 0) notes.push(`Пропущено строк при разборе файла: ${skipped}.`);
-      if (!matched.length && !notes.length) notes.push("В файле не найдено позиций каталога.");
+      if (unmatched.length) notes.push(`${tr(lang, "notFoundInCatalog")}: ${unmatched.map((row) => `${row.article} (${row.qty} ${tr(lang, "units")})`).join(", ")}.`);
+      if (skipped > 0) notes.push(`${tr(lang, "skippedRows")}: ${skipped}.`);
+      if (!matched.length && !notes.length) notes.push(tr(lang, "noCatalogRows"));
       if (notes.length) setChatItems((current) => [...current, { id: makeId("notice"), kind: "message", role: "notice", content: notes.join("\n") }]);
     } catch (error) {
       setChatItems((current) => [...current, {
         id: makeId("error"), kind: "message", role: "error",
-        content: `Не удалось загрузить файл: ${error instanceof Error ? error.message : String(error)}`,
+        content: lang === "ru"
+          ? `${tr(lang, "uploadFailed")}: ${error instanceof Error ? error.message : String(error)}`
+          : `${tr(lang, "uploadFailed")}: ${error instanceof Error && error.message.includes("5 МБ") ? tr(lang, "fileTooBig") : error instanceof Error && error.message.includes("Поддерживаются") ? tr(lang, "unsupportedFileType") : tr(lang, "fileParseFailed")}`,
       }]);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [busy, send, sessionId, uploading]);
+  }, [busy, lang, send, sessionId, uploading]);
 
   const reset = useCallback(async () => {
     if (!sessionId || busy) return;
@@ -434,76 +469,84 @@ export default function AgentApp() {
   }, [busy, sessionId, setCartWithoutFlash]);
 
   const mode = !env
-    ? { className: "", label: "Режим…" }
+    ? { className: "", label: "…" }
     : !env.hasKey || env.llmMode === "mock" || lastSource === "mock"
-      ? { className: "mock", label: "MOCK" }
-      : { className: "live", label: `LIVE · ${env.model}` };
+      ? { className: "mock", label: tr(lang, "mock") }
+      : { className: "live", label: `${tr(lang, "live")} · ${env.model}` };
+  const skuIn = demoPrompts[0]?.match(/артикул (.*?):/)?.[1] ?? "—";
+  const skuOut = demoPrompts[1]?.match(/^А (.*?) есть\?/)?.[1] ?? "—";
+  const visiblePrompts = lang === "kk" ? kazakhDemoPrompts(skuIn, skuOut) : demoPrompts;
 
   return (
     <main className="store-shell">
       <header className="app-header">
         <div className="brand-block">
           <span className="brand-mark">ЭК</span>
-          <div><strong>Электрокомплект</strong><span>ИИ-консультант по каталогу</span></div>
+          <div><strong>{tr(lang, "appTitle")}</strong><span>{tr(lang, "appSubtitle")}</span></div>
         </div>
         <div className="header-meta">
           <span className={`mode-badge ${mode.className}`}>{mode.label}</span>
-          <span className="catalog-badge">Каталог: {env ? env.catalogSize.toLocaleString("ru-RU") : "…"}</span>
-          {env?.dbEphemeral && <span className="ephemeral-badge">временная БД</span>}
-          <button className="secondary-button" type="button" onClick={() => void reset()} disabled={busy}>Сбросить демо</button>
+          <span className="catalog-badge">{tr(lang, "catalogCount")}: {env ? env.catalogSize.toLocaleString(lang === "kk" ? "kk-KZ" : "ru-RU") : "…"}</span>
+          {env?.dbEphemeral && <span className="ephemeral-badge">{tr(lang, "temporaryDb")}</span>}
+          <div className="language-switch" role="group" aria-label={tr(lang, "interfaceLanguage")}>
+            <button type="button" aria-pressed={lang === "ru"} onClick={() => changeLanguage("ru")}>RU</button>
+            <button type="button" aria-pressed={lang === "kk"} onClick={() => changeLanguage("kk")}>KZ</button>
+          </div>
+          <button className="secondary-button" type="button" onClick={() => void reset()} disabled={busy}>{tr(lang, "resetDemo")}</button>
         </div>
       </header>
 
       <section className="catalog-zone" aria-labelledby="catalog-title">
         <div className="zone-heading">
-          <div><span className="eyebrow">Витрина</span><h1 id="catalog-title">Товары каталога</h1></div>
-          <span>{products.length} позиций</span>
+          <div><span className="eyebrow">{tr(lang, "storefront")}</span><h1 id="catalog-title">{tr(lang, "products")}</h1></div>
+          <span>{products.length} {tr(lang, "positions")}</span>
         </div>
-        <ProductGrid products={products} error={productsError} onAsk={(product) => void send(`Расскажи о товаре с артикулом ${product.sku}`)} />
+        <ProductGrid products={products} error={productsError} lang={lang} onAsk={(product) => void send(tr(lang, "productQuestion").replace("{sku}", product.sku))} />
       </section>
 
       <section className="chat-zone" aria-labelledby="chat-title">
         <div className="zone-heading chat-heading">
-          <div><span className="eyebrow">Помощник</span><h2 id="chat-title">Чат с агентом</h2></div>
-          <span className={`agent-status ${busy ? "active" : ""}`}>{busy ? phase || "работает" : "готов"}</span>
+          <div><span className="eyebrow">{tr(lang, "assistant")}</span><h2 id="chat-title">{tr(lang, "chatTitle")}</h2></div>
+          <button className="manager-button" type="button" onClick={() => void send(tr(lang, "managerQuestion"))} disabled={busy || uploading}>{tr(lang, "ctaManager")}</button>
+          <span className={`agent-status ${busy ? "active" : ""}`}>{busy ? (phase ? tr(lang, phase as "thinking" | "searching" | "answering") : tr(lang, "working")) : tr(lang, "ready")}</span>
         </div>
 
         <div className="messages" ref={scrollRef} aria-live="polite">
           {chatItems.length === 0 && (
             <div className="welcome-card">
               <span className="welcome-icon">AI</span>
-              <div><strong>Помогу подобрать электротовары</strong><p>Проверю характеристики, реальные остатки по складам, предложу аналог и объясню выбор. Корзина изменится только после вашего подтверждения.</p></div>
+              <div><strong>{tr(lang, "welcomeTitle")}</strong><p>{tr(lang, "welcomeText")}</p></div>
             </div>
           )}
           {chatItems.map((item) => item.kind === "proposal" ? (
-            <ConfirmCard key={item.id} proposal={item.proposal} onConfirm={confirmProposal} onDecline={() => dismissProposal(item.proposal.proposalId)} />
+            <ConfirmCard key={item.id} proposal={item.proposal} onConfirm={confirmProposal} onDecline={() => dismissProposal(item.proposal.proposalId)} lang={lang} />
           ) : (
-            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">{item.imageUrl && <img className="message-image" src={item.imageUrl} alt="Загруженное фото товара" />}{item.content}</div></div>
+            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">{item.imageUrl && <img className="message-image" src={item.imageUrl} alt={tr(lang, "imageAlt")} />}{item.content}</div></div>
           ))}
-          {busy && phase && <div className="thinking-line"><span /> Агент {phase}…</div>}
+          {busy && phase && <div className="thinking-line"><span /> {tr(lang, phase as "thinking" | "searching" | "answering")}…</div>}
         </div>
 
         <div className="chat-controls">
-          {demoPrompts.length > 0 && (
-            <div className="prompt-list" aria-label="Примеры запросов">
-              {demoPrompts.map((prompt) => <button key={prompt} type="button" onClick={() => void send(prompt)} disabled={busy}>{prompt}</button>)}
+          {visiblePrompts.length > 0 && (
+            <div className="prompt-list" aria-label={tr(lang, "promptExamples")}>
+              {visiblePrompts.map((prompt) => <button key={prompt} type="button" onClick={() => void send(prompt)} disabled={busy}>{prompt}</button>)}
             </div>
           )}
           <form className="composer" onSubmit={(event) => { event.preventDefault(); void send(draft); }}>
             <input ref={fileInputRef} className="file-input" type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.png,.jpg,.jpeg,.webp" onChange={(event) => { const file = event.currentTarget.files?.[0]; if (file) void uploadFile(file); }} />
-            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft); } }} placeholder="Например: найдите автоматический выключатель на 16 А" rows={2} disabled={busy || uploading || !sessionId} />
-            <button className="attach-button" type="button" onClick={() => fileInputRef.current?.click()} disabled={busy || uploading || !sessionId} aria-label="Прикрепить файл">📎</button>
-            <button type="submit" disabled={busy || uploading || !draft.trim()} aria-label="Отправить сообщение">{busy ? "…" : "Отправить"}</button>
+            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft); } }} placeholder={tr(lang, "inputPlaceholder")} rows={2} disabled={busy || uploading || !sessionId} />
+            <button className="attach-button" type="button" onClick={() => fileInputRef.current?.click()} disabled={busy || uploading || !sessionId} aria-label={tr(lang, "attachFile")}>📎</button>
+            <button type="submit" disabled={busy || uploading || !draft.trim()} aria-label={tr(lang, "send")}>{busy ? "…" : tr(lang, "send")}</button>
           </form>
-          {uploading && <div className="upload-progress" role="status"><span /> Загружаем и разбираем файл…</div>}
+          {uploading && <div className="upload-progress" role="status"><span /> {tr(lang, "uploading")}</div>}
         </div>
       </section>
 
-      <aside className="cart-zone" aria-label="Корзина и действия агента">
-        <CartPanel cart={cart} flashSkus={flashSkus} sessionId={sessionId} />
+      <aside className="cart-zone" aria-label={`${tr(lang, "cart")} · ${tr(lang, "agentActions")}`}>
+        <CartPanel cart={cart} flashSkus={flashSkus} sessionId={sessionId} lang={lang} />
         <details className="trace-panel">
-          <summary>Действия агента <span>{trace.length}</span></summary>
-          {trace.length === 0 ? <p>Инструменты ещё не вызывались.</p> : (
+          <summary>{tr(lang, "agentActions")} <span>{trace.length}</span></summary>
+          {trace.length === 0 ? <p>{tr(lang, "noToolsYet")}</p> : (
             <div className="trace-list">{trace.map((item) => (
               <div className={`trace-item ${item.status}`} key={item.id}>
                 <div><strong>{item.name}</strong>{item.ms !== undefined && <span>{item.ms} мс</span>}</div>
