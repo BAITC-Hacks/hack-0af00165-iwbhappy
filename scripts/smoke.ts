@@ -242,6 +242,25 @@ ${B}5в. Приватность: платёжные данные не храня
       R.redactPayment("+7 701 234 56 78").includes("701"));
   }
 
+  // ---- 5г. Word и строки от модели ----------------------------------------
+  console.log(`
+${B}5г. Спецификация в Word; строки из PDF и фото${X}`);
+  {
+    const SP = await import("../src/lib/spec-parse");
+    const { readFileSync } = await import("node:fs");
+    const table = SP.parseSpecFile("spec.docx", readFileSync("scripts/fixtures/spec-table.docx"));
+    check("Word-таблица: три строки, «ИТОГО» отброшено",
+      table.ok && table.rows.length === 3 && table.skipped === 1, table.rows.map((r) => `${r.article}x${r.qty}`).join(","));
+    const lines = SP.parseSpecFile("spec.docx", readFileSync("scripts/fixtures/spec-lines.docx"));
+    check("Word без таблицы: строки через табуляцию", lines.ok && lines.rows.length === 2 && lines.rows[0].qty === 4);
+    check("старый .doc — понятный отказ", !SP.parseSpecFile("a.doc", Buffer.from("x")).ok);
+    // Строки от модели (PDF, фото накладной) проходят ту же проверку, что и таблица.
+    const fromModel = SP.specRowsFromExtract([
+      { article: "R9F12110", qty: 2 }, { article: "Итого", qty: 6 }, { article: "", qty: 1 },
+    ]);
+    check("строки от модели фильтруются так же, как таблица", fromModel.ok && fromModel.rows.length === 1);
+  }
+
   // ---- 5а. Язык ответа определяет сервер -----------------------------------
   console.log(`
 ${B}5а. Язык ответа${X}`);

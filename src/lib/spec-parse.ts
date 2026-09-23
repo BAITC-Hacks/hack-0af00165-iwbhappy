@@ -228,6 +228,42 @@ function toSpecRows(matrix: string[][]): ParseResult {
 }
 
 // --------------------------------------------------------------------------
+// DOCX: таблицы, а если их нет — строки абзацев
+// --------------------------------------------------------------------------
+
+// Имя тега строго целиком: `<w:t` без проверки поймает и <w:tab/>, <w:tc>,
+// <w:tr>, <w:tbl>; `<w:tr` — и <w:trPr>. Поэтому после имени — пробел или «>».
+const W_TEXT = /<w:t(?:\s[^>]*)?>[\s\S]*?<\/w:t>|<w:tab\/>/g;
+const W_ROW = /<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g;
+const W_CELL = /<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g;
+const W_PARA = /<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g;
+
+function wordText(xml: string): string {
+  // <w:tab/> внутри абзаца — разделитель колонок, если таблицы нет.
+  const parts = xml.match(W_TEXT) ?? [];
+  return unescapeXml(parts.map((t) => (t === "<w:tab/>" ? "\t" : t.replace(/<[^>]+>/g, ""))).join("")).trim();
+}
+
+function readDocx(xml: string): string[][] {
+  const rows: string[][] = [];
+  for (const tr of xml.match(W_ROW) ?? []) {
+    rows.push((tr.match(W_CELL) ?? []).map(wordText));
+  }
+  if (rows.length) return rows;
+
+  // Таблиц нет: спецификация набрана строками «артикул<TAB>количество».
+  const body = (xml.match(W_PARA) ?? []).map(wordText).filter(Boolean);
+  return body.map((line) => line.split(/\t|\s{2,}|;/).map((c) => c.trim()));
+}
+
+// --------------------------------------------------------------------------
+
+/** Строки спецификации, полученные не из таблицы, а от модели (PDF, фото). */
+export function specRowsFromExtract(rows: Array<{ article?: unknown; qty?: unknown }>): ParseResult {
+  const matrix = rows.map((r) => [String(r.article ?? ""), String(r.qty ?? "")]);
+  if (!matrix.length) return { ok: false, rows: [], skipped: 0, error: "В документе не нашлось строк с артикулами." };
+  return toSpecRows([["артикул", "количество"], ...matrix]);
+}
 
 export function parseSpecFile(name: string, buf: Buffer): ParseResult {
   const ext = (name.split(".").pop() ?? "").toLowerCase();
@@ -241,6 +277,19 @@ export function parseSpecFile(name: string, buf: Buffer): ParseResult {
       }
       const shared = sharedXml ? readSharedStrings(sharedXml.toString("utf8")) : [];
       return toSpecRows(readSheet(sheetXml.toString("utf8"), shared));
+    }
+
+    if (ext === "docx") {
+      const docXml = readZipEntry(buf, "word/document.xml");
+      if (!docXml) return { ok: false, rows: [], skipped: 0, error: "Не удалось прочитать документ Word." };
+      return toSpecRows(readDocx(docXml.toString("utf8")));
+    }
+
+    if (ext === "doc") {
+      return {
+        ok: false, rows: [], skipped: 0,
+        error: "Старый формат .doc не поддерживается. Сохраните файл как .docx или .pdf.",
+      };
     }
 
     if (ext === "csv" || ext === "tsv" || ext === "txt") {
