@@ -69,7 +69,41 @@ function db(): Client {
   return client;
 }
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
+
+/**
+ * Нормализация для поиска — одна функция для каталога и для запроса.
+ *
+ * - нижний регистр средствами JS (понимает кириллицу, в отличие от SQLite);
+ * - ё → е;
+ * - латинские буквы, похожие на кириллические, — в кириллицу: в каталоге
+ *   встречаются и «16А», и «25A», и «3P», и артикул «404029х» с русской «х».
+ *   Обе стороны нормализуются одинаково, поэтому совпадение не зависит от
+ *   того, какой раскладкой набран запрос;
+ * - «16 А» → «16а»: число и единица склеиваются;
+ * - всё, кроме букв и цифр, — пробел; по краям пробелы, чтобы искать по
+ *   началу слова шаблоном «% слово%».
+ */
+const LOOKALIKE: Record<string, string> = {
+  a: "а", b: "в", c: "с", e: "е", h: "н", k: "к", m: "м", o: "о", p: "р", t: "т", x: "х", y: "у",
+};
+
+export function normSearch(s: string): string {
+  const t = (s || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[abcehkmoptxy]/g, (ch) => LOOKALIKE[ch] ?? ch)
+    .replace(/[^0-9a-zа-яәғқңөұүһі]+/g, " ")
+    .replace(/(\d) (?=[а-яa-z]{1,2}(?: |$))/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+  return ` ${t} `;
+}
+
+/** Артикул для сравнения: без регистра, пробелов и знаков, с выровненными буквами. */
+export function normSku(s: string): string {
+  return normSearch(s).replace(/ /g, "");
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS products (
@@ -92,8 +126,15 @@ CREATE TABLE IF NOT EXISTS products (
   min_order INTEGER NOT NULL DEFAULT 1,
   url TEXT,
   certificate TEXT,
-  description TEXT
+  description TEXT,
+  -- Готовый текст для поиска (см. normSearch). LOWER() в SQLite понимает
+  -- только латиницу, а LIKE для кириллицы чувствителен к регистру: «узо»
+  -- не находило «УЗО». Поэтому регистр и похожие буквы выравниваются в JS.
+  search_text TEXT NOT NULL DEFAULT '',
+  type_text TEXT NOT NULL DEFAULT '',
+  sku_norm TEXT NOT NULL DEFAULT ''
 );
+CREATE INDEX IF NOT EXISTS idx_products_sku_norm ON products(sku_norm);
 CREATE INDEX IF NOT EXISTS idx_products_id ON products(id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 
@@ -204,9 +245,14 @@ export function ensureDb(): Promise<void> {
       // Схема за день хакатона меняется не раз, а файл базы переживает
       // перезапуск. Без этой проверки приложение падает на INSERT в таблицу
       // старой формы, и ошибка выглядит как поломка кода, а не как мусор в .data.
-      await c.executeMultiple(SCHEMA);
+      // Сначала версия, потом схема. В обратном порядке схема новой версии
+      // применялась к таблицам старой, и индекс по новой колонке падал
+      // раньше, чем код успевал пересоздать таблицу.
+      await c.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
       const ver = await c.execute("SELECT value FROM meta WHERE key = 'schema_version'");
-      if (String(ver.rows[0]?.value ?? "") !== String(SCHEMA_VERSION)) {
+      if (String(ver.rows[0]?.value ?? "") === String(SCHEMA_VERSION)) {
+        await c.executeMultiple(SCHEMA); // идемпотентно: досоздаёт недостающее
+      } else {
         await c.executeMultiple(
           "DROP TABLE IF EXISTS products; DROP TABLE IF EXISTS cart_items; DROP TABLE IF EXISTS proposals; DROP TABLE IF EXISTS cart_links;",
         );
@@ -229,14 +275,17 @@ export function ensureDb(): Promise<void> {
             { sql: "DELETE FROM products", args: [] },
             ...catalog.map((p) => ({
               sql: `INSERT OR REPLACE INTO products
-                    (sku,id,name,raw_name,category,category_title,brand,specs,price,stock,available,status,alternatives,min_order,url,certificate,description)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                    (sku,id,name,raw_name,category,category_title,brand,specs,price,stock,available,status,alternatives,min_order,url,certificate,description,search_text,type_text,sku_norm)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
               args: [
                 p.sku, p.id ?? null, p.name, p.rawName ?? null, p.category, p.categoryTitle, p.brand,
                 JSON.stringify(p.specs), p.price, JSON.stringify(p.stock), p.available, p.status,
                 JSON.stringify(p.alternatives), p.minOrder, p.url,
                 p.certificate ? JSON.stringify(p.certificate) : null,
                 p.description ?? null,
+                normSearch([p.sku, p.name, p.category.replace(/_/g, " "), p.categoryTitle, p.brand, ...Object.values(p.specs ?? {})].join(" ")),
+                normSearch(p.categoryTitle ?? ""),
+                normSku(p.sku),
               ],
             })),
           ],
@@ -274,40 +323,64 @@ function toProduct(r: Record<string, unknown>): Product {
 // Каталог
 // --------------------------------------------------------------------------
 
-const STOPWORDS = new Set([
-  "нужен", "нужна", "нужно", "хочу", "купить", "есть", "ли", "для", "под", "про",
-  "или", "что", "как", "это", "мне", "the", "and", "for", "with", "штук", "шт",
-]);
+// Слова пропускаются в той же нормализации, что и запрос (normSearch).
+const STOPWORDS = new Set(
+  [
+    "нужен", "нужна", "нужно", "нужны", "хочу", "купить", "есть", "ли", "для", "под", "про",
+    "или", "что", "как", "это", "мне", "штук", "шт", "найди", "найти", "покажи", "подбери",
+    "какой", "какая", "какие", "есть ли", "the", "and", "for", "with", "бар", "керек",
+  ].map((w) => normSearch(w).trim()),
+);
 
-/** Грубая нормализация под русский: режем хвост слова до 5 символов. */
-function tokenize(q: string): string[] {
-  return q
-    .toLowerCase()
-    .split(/[^a-zа-яё0-9]+/i)
-    .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
-    .map((w) => (w.length > 5 ? w.slice(0, 5) : w))
-    .filter((w, i, a) => a.indexOf(w) === i)
-    .slice(0, 6);
+/**
+ * Как клиент называет товар и как он записан в каталоге. Шаблоны — в форме
+ * после normSearch: «% слово%» — начало слова, «% ав %» — слово целиком
+ * (иначе «ав» совпадёт с «авария»).
+ */
+const SYNONYMS: Record<string, string[]> = {
+  "узо": ["% узо%", "% вдт%", "% дифф%"],
+  "вдт": ["% вдт%", "% узо%"],
+  "автом": ["% автом%", "% ав %"],
+  "дифав": ["% дифав%", "% авдт%"],
+};
+
+/**
+ * Запрос → группы шаблонов. Группа засчитывается, если совпал любой из её
+ * шаблонов. Слова режутся до 5 символов — грубая замена стемминга;
+ * токены с цифрами («16а», «r9f12110», «3р») не режутся.
+ */
+function tokenize(q: string): string[][] {
+  const groups: string[][] = [];
+  for (const w of normSearch(q).trim().split(" ")) {
+    if (!w || STOPWORDS.has(w)) continue;
+    const digit = /\d/.test(w);
+    if (w.length < (digit ? 2 : 3)) continue;
+    const t = digit || w.length <= 5 ? w : w.slice(0, 5);
+    const pats = SYNONYMS[t] ?? [`% ${t}%`];
+    if (!groups.some((g) => g[0] === pats[0])) groups.push(pats);
+  }
+  return groups.slice(0, 6);
 }
 
-async function query(sqlTail: string, tokens: string[], extra: unknown[], limit: number): Promise<Product[]> {
-  const score = tokens.length
-    ? tokens.map(() => "(CASE WHEN hay LIKE ? THEN 1 ELSE 0 END)").join(" + ")
-    : "0";
+async function query(sqlTail: string, groups: string[][], extra: unknown[], limit: number): Promise<Product[]> {
+  // Балл: +1 за каждую группу, совпавшую в тексте товара, и ещё +1, если
+  // она совпала с типом изделия. «Автомат 16А» ставит автоматы выше
+  // боксов для автоматов, у которых слово есть только в названии.
+  const parts: string[] = [];
+  const args: unknown[] = [];
+  for (const g of groups) {
+    parts.push(`(CASE WHEN ${g.map(() => "search_text LIKE ?").join(" OR ")} THEN 1 ELSE 0 END)`);
+    args.push(...g);
+    parts.push(`(CASE WHEN ${g.map(() => "type_text LIKE ?").join(" OR ")} THEN 1 ELSE 0 END)`);
+    args.push(...g);
+  }
+  const score = parts.length ? parts.join(" + ") : "0";
   const sql = `
-    WITH scored AS (
-      SELECT p.*, (${score}) AS score FROM (
-        SELECT *, LOWER(sku || ' ' || name || ' ' || category || ' ' || COALESCE(category_title,'') || ' ' || COALESCE(brand,'') || ' ' || specs) AS hay
-        FROM products
-      ) AS p
-    )
+    WITH scored AS (SELECT *, (${score}) AS score FROM products)
     SELECT * FROM scored ${sqlTail}
     ORDER BY score DESC, available > 0 DESC, price ASC
     LIMIT ?`;
-  const res = await db().execute({
-    sql,
-    args: [...tokens.map((t) => `%${t}%`), ...extra, limit] as never,
-  });
+  const res = await db().execute({ sql, args: [...args, ...extra, limit] as never });
   return res.rows.map((r) => toProduct(r as unknown as Record<string, unknown>));
 }
 
@@ -339,9 +412,15 @@ export async function searchCatalog(q: string, category?: string, limit = 5): Pr
 
 export async function getProduct(sku: string): Promise<Product | null> {
   await ensureDb();
+  // sku_norm: артикул «404029х» с русской «х» находится и по латинской «x»,
+  // регистр кириллицы тоже не важен. Точное совпадение — первым.
+  const key = sku.trim();
   const res = await db().execute({
-    sql: "SELECT * FROM products WHERE LOWER(sku) = LOWER(?) OR CAST(id AS TEXT) = ? LIMIT 1",
-    args: [sku.trim(), sku.trim()],
+    sql: `SELECT * FROM products
+          WHERE LOWER(sku) = LOWER(?) OR (sku_norm <> '' AND sku_norm = ?) OR CAST(id AS TEXT) = ?
+          ORDER BY (LOWER(sku) = LOWER(?)) DESC
+          LIMIT 1`,
+    args: [key, normSku(key), key, key],
   });
   const row = res.rows[0];
   return row ? toProduct(row as unknown as Record<string, unknown>) : null;
