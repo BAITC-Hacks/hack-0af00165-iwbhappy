@@ -1,19 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEMO_PROMPTS } from "@/lib/agent/prompts";
 import type { AgentEvent } from "@/lib/agent/loop";
-import type { Cart, Order } from "@/lib/db";
+import type { Cart } from "@/lib/db";
 import type { Msg } from "@/lib/llm/types";
+import CartPanel from "./CartPanel";
+import ConfirmCard, { type ProposalView } from "./ConfirmCard";
+import ProductGrid, { type ProductPreview } from "./ProductGrid";
 
-/**
- * Весь интерфейс — один клиентский компонент.
- * Состояние диалога живёт здесь и уходит на сервер с каждым запросом:
- * сервер не хранит сессий, поэтому его можно перезапускать и
- * переразворачивать посреди демо, ничего не потеряв.
- */
+type ChatMessage = {
+  id: string;
+  kind: "message";
+  role: "user" | "assistant" | "error" | "notice";
+  content: string;
+};
 
-type ChatMsg = { role: "user" | "assistant" | "error"; content: string };
+type ProposalMessage = {
+  id: string;
+  kind: "proposal";
+  proposal: ProposalView;
+};
+
+type ChatItem = ChatMessage | ProposalMessage;
+
 type TraceItem = {
   id: string;
   name: string;
@@ -22,130 +31,200 @@ type TraceItem = {
   summary?: string;
   ms?: number;
 };
-type Env = {
+
+type EnvInfo = {
   llmMode: string;
   hasKey: boolean;
   model: string;
-  fallbackModel: string;
+  catalogSize: number;
   dbEphemeral: boolean;
 };
 
-const money = (n: number) => `${n.toLocaleString("ru-RU")} ₸`;
 const EMPTY_CART: Cart = { lines: [], total: 0, count: 0 };
 
+function makeId(prefix: string): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function useSessionId(): string {
-  const [id, setId] = useState("");
+  const [sessionId, setSessionId] = useState("");
+
   useEffect(() => {
     const key = "hackalem.sid";
-    let sid = localStorage.getItem(key);
-    if (!sid) {
-      sid = `s_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
-      localStorage.setItem(key, sid);
+    let stored = localStorage.getItem(key);
+    if (!stored) {
+      stored = makeId("session");
+      localStorage.setItem(key, stored);
     }
-    setId(sid);
+    setSessionId(stored);
   }, []);
-  return id;
+
+  return sessionId;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readProposal(value: unknown): ProposalView | null {
+  if (!isRecord(value) || value.kind !== "proposal") return null;
+
+  const proposalId = typeof value.proposalId === "string" ? value.proposalId : "";
+  const sku = typeof value.sku === "string" ? value.sku : "";
+  const name = typeof value.name === "string" ? value.name : "";
+  const numericKeys = ["qty", "requestedQty", "price", "lineTotal", "available", "minOrder"] as const;
+  if (!proposalId || !sku || !name || numericKeys.some((key) => !Number.isFinite(Number(value[key])))) {
+    return null;
+  }
+
+  return {
+    kind: "proposal",
+    proposalId,
+    sku,
+    name,
+    qty: Number(value.qty),
+    requestedQty: Number(value.requestedQty),
+    price: Number(value.price),
+    lineTotal: Number(value.lineTotal),
+    available: Number(value.available),
+    minOrder: Number(value.minOrder),
+  };
 }
 
 export default function AgentApp() {
   const sessionId = useSessionId();
-
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
-
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [flashSkus, setFlashSkus] = useState<string[]>([]);
   const [trace, setTrace] = useState<TraceItem[]>([]);
-  const [env, setEnv] = useState<Env | null>(null);
+  const [env, setEnv] = useState<EnvInfo | null>(null);
   const [lastSource, setLastSource] = useState<"live" | "mock" | null>(null);
+  const [demoPrompts, setDemoPrompts] = useState<string[]>([]);
+  const [products, setProducts] = useState<ProductPreview[]>([]);
+  const [productsError, setProductsError] = useState("");
 
-  const [cartFlash, setCartFlash] = useState(false);
-  const [ordersFlash, setOrdersFlash] = useState(false);
-
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const prevCartCount = useRef(0);
-  const prevOrderCount = useRef(0);
-
-  // История для сервера: то, что уже сказано, без служебных строк.
   const historyRef = useRef<Msg[]>([]);
+  const cartRef = useRef<Cart>(EMPTY_CART);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Мгновенно, а не smooth: во время стриминга этот эффект срабатывает
-    // на каждом токене, и плавные прокрутки перебивают друг друга —
-    // чат зависает в середине, а ответ остаётся за кадром.
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, phase]);
+    const element = scrollRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [chatItems, phase]);
 
-  const loadState = useCallback(async (sid: string) => {
-    try {
-      const res = await fetch(`/api/state?sessionId=${encodeURIComponent(sid)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setCart(data.cart ?? EMPTY_CART);
-      setOrders(data.orders ?? []);
-      setEnv(data.env ?? null);
-      prevCartCount.current = data.cart?.count ?? 0;
-      prevOrderCount.current = data.orders?.length ?? 0;
-    } catch {
-      /* панель состояния не должна ронять чат */
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, []);
+
+  const setCartWithoutFlash = useCallback((nextCart: Cart) => {
+    cartRef.current = nextCart;
+    setCart(nextCart);
+  }, []);
+
+  const applyCart = useCallback((nextCart: Cart) => {
+    const previous = cartRef.current;
+    const changed = nextCart.lines
+      .filter((line) => previous.lines.find((old) => old.sku === line.sku)?.qty !== line.qty)
+      .map((line) => line.sku);
+
+    cartRef.current = nextCart;
+    setCart(nextCart);
+
+    if (changed.length > 0) {
+      setFlashSkus(changed);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlashSkus([]), 1_600);
     }
   }, []);
+
+  const loadState = useCallback(
+    async (sid: string, flash = false) => {
+      try {
+        const response = await fetch(`/api/state?sessionId=${encodeURIComponent(sid)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          cart?: Cart;
+          demoPrompts?: string[];
+          env?: EnvInfo;
+        };
+        const nextCart = data.cart ?? EMPTY_CART;
+        if (flash) applyCart(nextCart);
+        else setCartWithoutFlash(nextCart);
+        setDemoPrompts(Array.isArray(data.demoPrompts) ? data.demoPrompts : []);
+        setEnv(data.env ?? null);
+      } catch {
+        // Недоступная диагностическая панель не должна ломать чат.
+      }
+    },
+    [applyCart, setCartWithoutFlash],
+  );
 
   useEffect(() => {
     if (sessionId) void loadState(sessionId);
   }, [sessionId, loadState]);
 
-  // Подсветка карточек при изменении — чтобы с задних рядов было видно,
-  // что агент действительно что-то поменял, а не просто написал об этом.
-  const applyState = useCallback((nextCart: Cart, nextOrders: Order[]) => {
-    if (nextCart.count !== prevCartCount.current) {
-      setCartFlash(true);
-      setTimeout(() => setCartFlash(false), 900);
-      prevCartCount.current = nextCart.count;
-    }
-    const changed =
-      nextOrders.length !== prevOrderCount.current ||
-      nextOrders.some((o, i) => o.status !== orders[i]?.status);
-    if (changed) {
-      setOrdersFlash(true);
-      setTimeout(() => setOrdersFlash(false), 900);
-      prevOrderCount.current = nextOrders.length;
-    }
-    setCart(nextCart);
-    setOrders(nextOrders);
-  }, [orders]);
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetch("/api/products", { cache: "no-store" })
+      .then(async (response) => {
+        const data = (await response.json()) as { products?: ProductPreview[]; error?: string };
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        if (!cancelled) setProducts(Array.isArray(data.products) ? data.products : []);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setProductsError(error instanceof Error ? error.message : "Не удалось загрузить каталог");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const send = useCallback(
-    async (text: string) => {
-      const message = text.trim();
+    async (rawMessage: string) => {
+      const message = rawMessage.trim();
       if (!message || busy || !sessionId) return;
 
+      const assistantId = makeId("assistant");
       setDraft("");
       setBusy(true);
       setPhase("думает");
       setTrace([]);
-      setMessages((m) => [...m, { role: "user", content: message }, { role: "assistant", content: "" }]);
+      setChatItems((items) => [
+        ...items,
+        { id: makeId("user"), kind: "message", role: "user", content: message },
+        { id: assistantId, kind: "message", role: "assistant", content: "" },
+      ]);
 
       const historyForRequest = historyRef.current;
       let answer = "";
-      let delta: Msg[] | null = null;
+      let historyDelta: Msg[] | null = null;
 
       try {
-        const res = await fetch("/api/chat", {
+        const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId, message, history: historyForRequest }),
         });
 
-        if (!res.ok || !res.body) {
-          const detail = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-          throw new Error(detail.error ?? `HTTP ${res.status}`);
+        if (!response.ok || !response.body) {
+          const detail = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(detail.error || `HTTP ${response.status}`);
         }
 
-        const reader = res.body.getReader();
+        const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
 
@@ -154,73 +233,57 @@ export default function AgentApp() {
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
 
-          // SSE: события разделены пустой строкой.
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
+          const chunks = buffer.split("\n\n");
+          buffer = chunks.pop() ?? "";
 
-          for (const part of parts) {
-            const line = part.split("\n").find((l) => l.startsWith("data: "));
-            if (!line) continue;
-            const payload = line.slice(6);
-            if (payload === "[DONE]") continue;
+          for (const chunk of chunks) {
+            const dataLine = chunk.split("\n").find((line) => line.startsWith("data: "));
+            if (!dataLine || dataLine.slice(6) === "[DONE]") continue;
 
-            let ev: AgentEvent;
+            let event: AgentEvent;
             try {
-              ev = JSON.parse(payload) as AgentEvent;
+              event = JSON.parse(dataLine.slice(6)) as AgentEvent;
             } catch {
               continue;
             }
 
-            switch (ev.type) {
+            switch (event.type) {
               case "status":
-                setPhase(ev.phase === "tools" ? "работает с каталогом" : ev.phase === "thinking" ? "думает" : "отвечает");
+                setPhase(event.phase === "tools" ? "проверяет каталог" : event.phase === "answering" ? "отвечает" : "думает");
                 break;
-
               case "token":
-                answer += ev.text;
-                setMessages((m) => {
-                  const copy = [...m];
-                  copy[copy.length - 1] = { role: "assistant", content: answer };
-                  return copy;
-                });
-                break;
-
-              case "tool_call":
-                setTrace((t) => [...t, { id: ev.id, name: ev.name, args: ev.args, status: "running" }]);
-                break;
-
-              case "tool_result":
-                setTrace((t) =>
-                  t.map((item) =>
-                    item.id === ev.id
-                      ? { ...item, status: ev.ok ? "ok" : "fail", summary: ev.summary, ms: ev.ms }
-                      : item,
-                  ),
+                answer += event.text;
+                setChatItems((items) =>
+                  items.map((item) => item.kind === "message" && item.id === assistantId ? { ...item, content: answer } : item),
                 );
                 break;
-
+              case "tool_call":
+                setTrace((items) => [...items, { id: event.id, name: event.name, args: event.args, status: "running" }]);
+                break;
+              case "tool_result": {
+                setTrace((items) => items.map((item) => item.id === event.id ? { ...item, status: event.ok ? "ok" : "fail", summary: event.summary, ms: event.ms } : item));
+                if (event.name === "propose_add" && event.ok) {
+                  const proposal = readProposal(event.client);
+                  if (proposal) {
+                    setChatItems((items) => items.some((item) => item.kind === "proposal" && item.proposal.proposalId === proposal.proposalId) ? items : [...items, { id: `proposal_${proposal.proposalId}`, kind: "proposal", proposal }]);
+                  }
+                }
+                break;
+              }
               case "state":
-                applyState(ev.cart, ev.orders);
+                applyCart(event.cart);
                 break;
-
               case "history":
-                // Сервер отдаёт всё, что дописал за ход, включая вызовы
-                // инструментов — благодаря этому агент на следующей реплике
-                // помнит id уже показанных товаров.
-                delta = ev.messages;
+                historyDelta = event.messages;
                 break;
-
               case "done":
-                setLastSource(ev.source);
+                setLastSource(event.source);
                 break;
-
               case "error":
-                setMessages((m) => {
-                  const copy = [...m];
-                  const tail = copy[copy.length - 1];
-                  if (tail?.role === "assistant" && !tail.content) copy.pop();
-                  return [...copy, { role: "error", content: ev.message }];
-                });
+                setChatItems((items) => [
+                  ...items.filter((item) => !(item.kind === "message" && item.id === assistantId && item.content.length === 0)),
+                  { id: makeId("error"), kind: "message", role: "error", content: event.message },
+                ]);
                 break;
             }
           }
@@ -228,223 +291,152 @@ export default function AgentApp() {
 
         historyRef.current = [
           ...historyForRequest,
-          ...(delta ?? [
-            { role: "user", content: message },
-            { role: "assistant", content: answer || "(без текста)" },
-          ] as Msg[]),
+          ...(historyDelta ?? ([{ role: "user", content: message }, { role: "assistant", content: answer || "(без текста)" }] as Msg[])),
         ];
-      } catch (e) {
-        setMessages((m) => {
-          const copy = [...m];
-          const tail = copy[copy.length - 1];
-          if (tail?.role === "assistant" && !tail.content) copy.pop();
-          return [...copy, { role: "error", content: `Связь с агентом оборвалась: ${(e as Error).message}` }];
-        });
+      } catch (error) {
+        setChatItems((items) => [
+          ...items.filter((item) => !(item.kind === "message" && item.id === assistantId && item.content.length === 0)),
+          { id: makeId("error"), kind: "message", role: "error", content: `Связь с агентом оборвалась: ${error instanceof Error ? error.message : String(error)}` },
+        ]);
       } finally {
         setBusy(false);
         setPhase(null);
-        void loadState(sessionId);
+        void loadState(sessionId, true);
       }
     },
-    [busy, sessionId, applyState, loadState],
+    [applyCart, busy, loadState, sessionId],
+  );
+
+  const dismissProposal = useCallback((proposalId: string) => {
+    setChatItems((items) => items.filter((item) => !(item.kind === "proposal" && item.proposal.proposalId === proposalId)));
+  }, []);
+
+  const confirmProposal = useCallback(
+    async (proposal: ProposalView) => {
+      const response = await fetch("/api/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, proposalId: proposal.proposalId }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        cart?: Cart;
+        added?: { name: string; qty: number };
+        capped?: boolean;
+      };
+
+      if (data.cart) applyCart(data.cart);
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+
+      dismissProposal(proposal.proposalId);
+      setChatItems((items) => [
+        ...items,
+        {
+          id: makeId("notice"),
+          kind: "message",
+          role: "notice",
+          content: data.capped
+            ? `Добавлено ${data.added?.qty ?? proposal.qty} шт. — это весь доступный остаток.`
+            : `${data.added?.name ?? proposal.name} добавлен в корзину: ${data.added?.qty ?? proposal.qty} шт.`,
+        },
+      ]);
+    },
+    [applyCart, dismissProposal, sessionId],
   );
 
   const reset = useCallback(async () => {
-    if (!sessionId) return;
-    await fetch("/api/reset", {
+    if (!sessionId || busy) return;
+    const response = await fetch("/api/reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId }),
     });
+    const data = (await response.json().catch(() => ({}))) as { cart?: Cart };
     historyRef.current = [];
-    prevCartCount.current = 0;
-    prevOrderCount.current = 0;
-    setMessages([]);
+    setChatItems([]);
     setTrace([]);
-    setCart(EMPTY_CART);
-    setOrders([]);
     setLastSource(null);
-  }, [sessionId]);
+    setFlashSkus([]);
+    setCartWithoutFlash(data.cart ?? EMPTY_CART);
+  }, [busy, sessionId, setCartWithoutFlash]);
 
-  // Пока состояние не загрузилось — нейтральная надпись.
-  // Мигнуть «LIVE» при пустом ключе значит соврать жюри на секунду.
-  const modeBadge = !env
-    ? { cls: "", text: "проверяю режим…" }
-    : lastSource === "mock" || !env.hasKey
-      ? { cls: "mock", text: "MOCK — записанные ответы" }
-      : { cls: "live", text: `LIVE — ${env.model}` };
+  const mode = !env
+    ? { className: "", label: "Режим…" }
+    : !env.hasKey || env.llmMode === "mock" || lastSource === "mock"
+      ? { className: "mock", label: "MOCK" }
+      : { className: "live", label: `LIVE · ${env.model}` };
 
   return (
-    <div className="shell">
-      <div className="chat-col">
-        <div className="topbar">
-          <div className="brand">
-            Агент<span>·</span>Магазин
-          </div>
-          <div className={`badge ${modeBadge.cls}`}>{modeBadge.text}</div>
-          {env?.dbEphemeral && <div className="badge warn">БД в /tmp</div>}
-          <div className="spacer" />
-          <button className="ghost-btn" onClick={reset} disabled={busy}>
-            Сброс демо
-          </button>
+    <main className="store-shell">
+      <header className="app-header">
+        <div className="brand-block">
+          <span className="brand-mark">ЭК</span>
+          <div><strong>Электрокомплект</strong><span>ИИ-консультант по каталогу</span></div>
+        </div>
+        <div className="header-meta">
+          <span className={`mode-badge ${mode.className}`}>{mode.label}</span>
+          <span className="catalog-badge">Каталог: {env ? env.catalogSize.toLocaleString("ru-RU") : "…"}</span>
+          {env?.dbEphemeral && <span className="ephemeral-badge">временная БД</span>}
+          <button className="secondary-button" type="button" onClick={() => void reset()} disabled={busy}>Сбросить демо</button>
+        </div>
+      </header>
+
+      <section className="catalog-zone" aria-labelledby="catalog-title">
+        <div className="zone-heading">
+          <div><span className="eyebrow">Витрина</span><h1 id="catalog-title">Товары каталога</h1></div>
+          <span>{products.length} позиций</span>
+        </div>
+        <ProductGrid products={products} error={productsError} onAsk={(product) => void send(`Расскажи о товаре с артикулом ${product.sku}`)} />
+      </section>
+
+      <section className="chat-zone" aria-labelledby="chat-title">
+        <div className="zone-heading chat-heading">
+          <div><span className="eyebrow">Помощник</span><h2 id="chat-title">Чат с агентом</h2></div>
+          <span className={`agent-status ${busy ? "active" : ""}`}>{busy ? phase || "работает" : "готов"}</span>
         </div>
 
-        <div className="messages" ref={scrollRef}>
-          {messages.length === 0 && (
-            <div className="msg assistant">
-              <div className="bubble">
-                Опишите, что вам нужно — я подберу, сравню и оформлю заказ. Возврат тоже на мне.
-                {"\n\n"}Например: «нужен лёгкий ноутбук для учёбы до 500 000 ₸».
-              </div>
+        <div className="messages" ref={scrollRef} aria-live="polite">
+          {chatItems.length === 0 && (
+            <div className="welcome-card">
+              <span className="welcome-icon">AI</span>
+              <div><strong>Помогу подобрать электротовары</strong><p>Проверю характеристики, реальные остатки по складам, предложу аналог и объясню выбор. Корзина изменится только после вашего подтверждения.</p></div>
             </div>
           )}
-
-          {messages.map((m, i) => {
-            const isLast = i === messages.length - 1;
-            const typing = busy && isLast && m.role === "assistant";
-            return (
-              <div key={i} className={`msg ${m.role}`}>
-                <div className={`bubble ${typing ? "caret" : ""}`}>{m.content}</div>
-              </div>
-            );
-          })}
-
-          {busy && phase && (
-            <div className="status-line">
-              <span className="dot" />
-              агент {phase}…
-            </div>
-          )}
+          {chatItems.map((item) => item.kind === "proposal" ? (
+            <ConfirmCard key={item.id} proposal={item.proposal} onConfirm={confirmProposal} onDecline={() => dismissProposal(item.proposal.proposalId)} />
+          ) : (
+            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">{item.content}</div></div>
+          ))}
+          {busy && phase && <div className="thinking-line"><span /> Агент {phase}…</div>}
         </div>
 
-        <div className="composer">
-          <div className="suggestions">
-            {DEMO_PROMPTS.map((p) => (
-              <button key={p} className="chip" onClick={() => void send(p)} disabled={busy}>
-                {p}
-              </button>
-            ))}
-          </div>
-          <form
-            className="input-row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void send(draft);
-            }}
-          >
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Что вам нужно?"
-              disabled={busy || !sessionId}
-              autoFocus
-            />
-            <button className="send-btn" type="submit" disabled={busy || !draft.trim()}>
-              {busy ? "…" : "Отправить"}
-            </button>
+        <div className="chat-controls">
+          {demoPrompts.length > 0 && (
+            <div className="prompt-list" aria-label="Примеры запросов">
+              {demoPrompts.map((prompt) => <button key={prompt} type="button" onClick={() => void send(prompt)} disabled={busy}>{prompt}</button>)}
+            </div>
+          )}
+          <form className="composer" onSubmit={(event) => { event.preventDefault(); void send(draft); }}>
+            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft); } }} placeholder="Например: найдите автоматический выключатель на 16 А" rows={2} disabled={busy || !sessionId} />
+            <button type="submit" disabled={busy || !draft.trim()} aria-label="Отправить сообщение">{busy ? "…" : "Отправить"}</button>
           </form>
         </div>
-      </div>
+      </section>
 
-      <div className="rail">
-        <CartCard cart={cart} flash={cartFlash} />
-        <OrdersCard orders={orders} flash={ordersFlash} />
-        <TraceCard trace={trace} />
-      </div>
-    </div>
-  );
-}
-
-function CartCard({ cart, flash }: { cart: Cart; flash: boolean }) {
-  return (
-    <div className={`card ${flash ? "flash" : ""}`}>
-      <div className="card-head">
-        <span>Корзина</span>
-        {cart.count > 0 && <span className="count-pill">{cart.count}</span>}
-      </div>
-      {cart.lines.length === 0 ? (
-        <div className="empty">Пусто</div>
-      ) : (
-        <>
-          {cart.lines.map((l) => (
-            <div className="line" key={l.product_id}>
-              <span>
-                {l.title} <span className="qty">×{l.qty}</span>
-              </span>
-              <span className="price">{money(l.line_total)}</span>
-            </div>
-          ))}
-          <div className="total">
-            <span>Итого</span>
-            <span className="amount">{money(cart.total)}</span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-const STATUS_RU: Record<Order["status"], string> = {
-  placed: "оформлен",
-  shipped: "в пути",
-  delivered: "доставлен",
-  return_requested: "возврат",
-  refunded: "возвращён",
-};
-
-function OrdersCard({ orders, flash }: { orders: Order[]; flash: boolean }) {
-  return (
-    <div className={`card ${flash ? "flash" : ""}`}>
-      <div className="card-head">
-        <span>Заказы</span>
-        {orders.length > 0 && <span className="count-pill">{orders.length}</span>}
-      </div>
-      {orders.length === 0 ? (
-        <div className="empty">Заказов нет</div>
-      ) : (
-        orders.map((o) => (
-          <div className="order" key={o.id}>
-            <div className="order-head">
-              <span className="order-id">{o.id}</span>
-              <span className={`status ${o.status}`}>{STATUS_RU[o.status] ?? o.status}</span>
-            </div>
-            <div className="order-items">
-              {o.items.map((i) => `${i.title} ×${i.qty}`).join(", ")}
-            </div>
-            <div className="order-meta">
-              {money(o.total)} · доставка {o.eta_days} дн.
-              {o.return_reason ? ` · причина: ${o.return_reason}` : ""}
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
-
-function TraceCard({ trace }: { trace: TraceItem[] }) {
-  return (
-    <div className="card">
-      <div className="card-head">
-        <span>Что делает агент</span>
-        {trace.length > 0 && <span className="count-pill">{trace.length}</span>}
-      </div>
-      {trace.length === 0 ? (
-        <div className="empty">Вызовов инструментов пока не было</div>
-      ) : (
-        <div className="trace">
-          {trace.map((t) => (
-            <div className={`trace-item ${t.status}`} key={t.id}>
-              <div className="trace-name">
-                <span>{t.name}</span>
-                {t.ms !== undefined && <span className="trace-ms">{t.ms} мс</span>}
+      <aside className="cart-zone" aria-label="Корзина и действия агента">
+        <CartPanel cart={cart} flashSkus={flashSkus} sessionId={sessionId} />
+        <details className="trace-panel">
+          <summary>Действия агента <span>{trace.length}</span></summary>
+          {trace.length === 0 ? <p>Инструменты ещё не вызывались.</p> : (
+            <div className="trace-list">{trace.map((item) => (
+              <div className={`trace-item ${item.status}`} key={item.id}>
+                <div><strong>{item.name}</strong>{item.ms !== undefined && <span>{item.ms} мс</span>}</div>
+                <code>{JSON.stringify(item.args)}</code>{item.summary && <p>{item.summary}</p>}
               </div>
-              <div className="trace-args">{JSON.stringify(t.args)}</div>
-              {t.summary && <div className="trace-summary">{t.summary}</div>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            ))}</div>
+          )}
+        </details>
+      </aside>
+    </main>
   );
 }
