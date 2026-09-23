@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import type { Cart } from "@/lib/db";
 import { tr, type Lang } from "./i18n";
 
-type Props = { cart: Cart; flashSkus: string[]; sessionId: string; lang: Lang };
+type Props = { cart: Cart; flashSkus: string[]; cartUrl: string; lang: Lang };
 const money = (value: number, lang: Lang) => `${value.toLocaleString(lang === "kk" ? "kk-KZ" : "ru-RU")} ₸`;
 
-export default function CartPanel({ cart, flashSkus, sessionId, lang }: Props) {
+export default function CartPanel({ cart, flashSkus, cartUrl, lang }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -27,7 +27,7 @@ export default function CartPanel({ cart, flashSkus, sessionId, lang }: Props) {
           ))}</div>
         )}
         <div className="cart-total-row"><span>{tr(lang, "total")}</span><strong>{money(cart.total, lang)}</strong></div>
-        <a className={`cart-link ${cart.lines.length === 0 || !sessionId ? "disabled" : ""}`} href={sessionId ? `/cart?session=${encodeURIComponent(sessionId)}` : "#"} aria-disabled={cart.lines.length === 0 || !sessionId} onClick={(event) => { if (cart.lines.length === 0 || !sessionId) event.preventDefault(); }}>{tr(lang, "openCart")}</a>
+        <a className={`cart-link ${cart.count === 0 || !cartUrl ? "disabled" : ""}`} href={cartUrl || "#"} aria-disabled={cart.count === 0 || !cartUrl} onClick={(event) => { if (cart.count === 0 || !cartUrl) event.preventDefault(); }}>{tr(lang, "openCart")}</a>
         <p className="cart-note">{tr(lang, "cartDisclaimer")}</p>
       </div>
     </section>

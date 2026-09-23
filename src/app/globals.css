@@ -165,6 +165,8 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .chat-heading { gap: 8px; }
 .manager-button { flex: 0 0 auto; max-width: 170px; min-height: 31px; padding: 5px 9px; border: 1px solid #b9cef0; border-radius: 8px; background: var(--blue-soft); color: var(--blue-dark); font-size: 10px; font-weight: 750; }
 .manager-button:hover:not(:disabled) { background: var(--blue); color: white; }
+.new-chat-button { flex: 0 0 auto; max-width: 125px; min-height: 31px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); font-size: 10px; font-weight: 750; }
+.new-chat-button:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
 @keyframes status-pulse { 50% { transform: scale(1.7); opacity: 0.45; } }
 
 .product-grid {
@@ -327,6 +329,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   background: #fffaf0;
   box-shadow: 0 9px 22px rgba(135, 90, 10, 0.08);
 }
+.confirm-card.processed { border-color: #d8dee7; background: #f8fafc; box-shadow: none; }
 .confirm-kicker { margin-bottom: 7px; color: #98620c; font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
 .confirm-items { display: grid; gap: 8px; }
 .confirm-item { padding: 9px; border: 1px solid #f1dfbd; border-radius: 9px; background: white; }
@@ -509,6 +512,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   .chat-heading h2 { font-size: 13px; }
   .chat-heading .eyebrow { font-size: 8px; }
   .manager-button { max-width: 108px; min-height: 29px; padding: 4px 6px; font-size: 9px; line-height: 1.15; }
+  .new-chat-button { max-width: 82px; min-height: 29px; padding: 4px 5px; font-size: 8px; line-height: 1.15; }
   .chat-heading .agent-status { min-height: 24px; padding: 3px 6px; font-size: 8px; letter-spacing: 0; }
   .chat-heading .agent-status { display: none; }
   .cart-zone { position: sticky; z-index: 20; top: 7px; }
