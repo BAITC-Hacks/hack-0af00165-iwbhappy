@@ -21,7 +21,7 @@ import { executeTool, TOOL_SPECS } from "./tools";
 export type AgentEvent =
   | { type: "status"; phase: "thinking" | "tools" | "answering" }
   | { type: "tool_call"; id: string; name: string; args: unknown }
-  | { type: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number }
+  | { type: "tool_result"; id: string; name: string; ok: boolean; summary: string; ms: number; client?: Record<string, unknown> }
   | { type: "token"; text: string }
   | { type: "state"; cart: Cart }
   | { type: "history"; messages: Msg[] }
@@ -129,7 +129,11 @@ export async function* runAgent(input: AgentInput): AsyncGenerator<AgentEvent, v
         if (CART_TOUCHING.has(call.name)) touchedState = true;
 
         log({ kind: "tool", event: call.name, traceId, ms, detail: { ok: result.ok, summary: result.summary } });
-        yield { type: "tool_result", id: call.id, name: call.name, ok: result.ok, summary: result.summary, ms };
+        yield {
+          type: "tool_result", id: call.id, name: call.name,
+          ok: result.ok, summary: result.summary, ms,
+          ...(result.client ? { client: result.client } : {}),
+        };
         messages.push({ role: "tool", tool_call_id: call.id, name: call.name, content: JSON.stringify(result.data) });
       }
 

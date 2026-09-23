@@ -10,10 +10,21 @@
  * Поведение самой модели проверяется руками в интерфейсе.
  */
 
-process.env.DB_URL ??= "file:./.data/smoke.db";
+// ВНИМАНИЕ: в ESM импорты поднимаются выше тела модуля. Обычный
+// `process.env.DB_URL = ...` в начале файла выполнится УЖЕ ПОСЛЕ того,
+// как db.ts прочитает конфиг, и смоук молча уедет на рабочую базу.
+// Поэтому переменные ставятся здесь, а модули подгружаются динамически.
+process.env.DB_URL = process.env.SMOKE_DB_URL ?? "file:./.data/smoke.db";
 
-import { executeTool, isAffirmative, type ToolContext } from "../src/lib/agent/tools";
-import { CATALOG_SIZE, getCart, pickDemoSkus, resetSession } from "../src/lib/db";
+import type { ToolContext } from "../src/lib/agent/tools";
+
+// tsx собирает этот скрипт в CJS, где top-level await недоступен,
+// поэтому модули подгружаются в начале main().
+type ToolsModule = typeof import("../src/lib/agent/tools");
+type DbModule = typeof import("../src/lib/db");
+
+let T: ToolsModule;
+let DB: DbModule;
 
 const SESSION = "smoke-session";
 let failures = 0;
@@ -33,7 +44,7 @@ function ctx(lastUserMessage: string, turnStartedAt: string): ToolContext {
 
 /** Вызов инструмента с разбором результата. */
 async function call(name: string, args: Record<string, unknown>, c: ToolContext) {
-  const out = await executeTool(name, JSON.stringify(args), c);
+  const out = await T.executeTool(name, JSON.stringify(args), c);
   if (out.kind === "invalid_args") {
     return { ok: false, data: { error: out.message } as Record<string, unknown>, summary: out.message };
   }
@@ -43,17 +54,20 @@ async function call(name: string, args: Record<string, unknown>, c: ToolContext)
 const laterThan = (iso: string, ms: number) => new Date(Date.parse(iso) + ms).toISOString();
 
 async function main() {
-  console.log(`${B}Приёмочные тесты — ИИ-ассистент ekt.kz${X}`);
-  console.log(`${D}каталог: ${CATALOG_SIZE} позиций${X}\n`);
+  T = await import("../src/lib/agent/tools");
+  DB = await import("../src/lib/db");
 
-  if (CATALOG_SIZE === 0) {
+  console.log(`${B}Приёмочные тесты — ИИ-ассистент ekt.kz${X}`);
+  console.log(`${D}каталог: ${DB.CATALOG_SIZE} позиций${X}\n`);
+
+  if (DB.CATALOG_SIZE === 0) {
     console.log(`${R}Каталог пуст. Сначала выгрузите его:${X}`);
     console.log(`  npx tsx scripts/seed-from-api.ts`);
     process.exit(1);
   }
 
-  await resetSession(SESSION);
-  const { inStock, outOfStock } = await pickDemoSkus();
+  await DB.resetSession(SESSION);
+  const { inStock, outOfStock } = await DB.pickDemoSkus();
   console.log(`${D}демо-артикулы: в наличии ${inStock || "—"}, без остатка ${outOfStock || "—"}${X}\n`);
 
   // ---- 0. Матчер согласия ------------------------------------------------
@@ -65,7 +79,7 @@ async function main() {
     ["а можно добавить?", false], ["если есть на складе, добавь", false],
     ["", false], ["расскажи про характеристики", false],
   ] as Array<[string, boolean]>) {
-    check(`«${text || "(пусто)"}» → ${expected ? "согласие" : "не согласие"}`, isAffirmative(text) === expected);
+    check(`«${text || "(пусто)"}» → ${expected ? "согласие" : "не согласие"}`, T.isAffirmative(text) === expected);
   }
 
   // ---- 1. Артикул: наличие, характеристики, сертификат --------------------
@@ -116,25 +130,25 @@ async function main() {
   const proposal = await call("propose_add", { sku: inStock, qty: 2 }, ctx("добавь 2 штуки", turnA));
   const proposalId = String(proposal.data.proposalId ?? "");
   check("propose_add выдал предложение", proposal.ok && proposalId.length > 0);
-  check("корзина НЕ изменилась после предложения", (await getCart(SESSION)).count === 0);
+  check("корзина НЕ изменилась после предложения", (await DB.getCart(SESSION)).count === 0);
 
   // 4a. Подтверждение в том же ходу — должно быть отклонено.
   const sameTurn = await call("confirm_add", { proposalId }, ctx("добавь 2 штуки", turnA));
   check("confirm_add в том же ходу отклонён", !sameTurn.ok, String(sameTurn.summary));
-  check("корзина всё ещё пуста", (await getCart(SESSION)).count === 0);
+  check("корзина всё ещё пуста", (await DB.getCart(SESSION)).count === 0);
 
   // 4b. Следующий ход, но без согласия — тоже отклонён.
   const turnB = laterThan(turnA, 1000);
   const noConsent = await call("confirm_add", { proposalId }, ctx("а сколько это будет стоить?", turnB));
   check("confirm_add без явного согласия отклонён", !noConsent.ok, String(noConsent.summary));
-  check("корзина всё ещё пуста", (await getCart(SESSION)).count === 0);
+  check("корзина всё ещё пуста", (await DB.getCart(SESSION)).count === 0);
 
   // 4c. Следующий ход и явное «да» — добавляется.
   const turnC = laterThan(turnA, 2000);
   const confirmed = await call("confirm_add", { proposalId }, ctx("да, добавь", turnC));
   check("confirm_add с явным согласием прошёл", confirmed.ok, String(confirmed.summary));
 
-  const cart = await getCart(SESSION);
+  const cart = await DB.getCart(SESSION);
   check("позиция появилась в корзине", cart.count > 0, `${cart.count} шт.`);
 
   const prodCard = await call("get_product", { sku: inStock }, ctx("проверка", turnC));
@@ -144,7 +158,7 @@ async function main() {
   // 4d. Повторное использование того же предложения — отклонено.
   const reuse = await call("confirm_add", { proposalId }, ctx("да, добавь", laterThan(turnA, 3000)));
   check("повторное подтверждение отклонено", !reuse.ok, String(reuse.summary));
-  check("корзина не выросла от повтора", (await getCart(SESSION)).count === cart.count);
+  check("корзина не выросла от повтора", (await DB.getCart(SESSION)).count === cart.count);
 
   // ---- 5. Ссылка на корзину ----------------------------------------------
   console.log(`\n${B}5. Ссылка на корзину${X}`);

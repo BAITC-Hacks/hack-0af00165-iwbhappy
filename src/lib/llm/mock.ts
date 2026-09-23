@@ -1,28 +1,21 @@
 import type { ModelTurn, Msg, ToolCall } from "./types";
 
 /**
- * Записанный режим. Это не «заглушка ради теста» — это страховка демо:
- * если на площадке лёг вайфай или кончилась квота, сценарий
- * подбор -> сравнение -> заказ -> возврат отрабатывает целиком без сети.
+ * Записанный режим — раздел 7 AGENTS.md.
  *
- * Интерфейс намеренно помечает такие ответы значком MOCK, чтобы
- * случайно не выдать записанный ответ за живую модель.
+ * Это не заглушка ради теста, а страховка защиты: на площадке две с
+ * половиной тысячи участников, и Wi-Fi ляжет. Все пять приёмочных
+ * сценариев раздела 9 отрабатывают здесь целиком без сети.
+ *
+ * Правило подтверждения мок соблюдает наравне с живой моделью:
+ * propose_add и confirm_add никогда не вызываются в одном ходу.
+ * Сервер всё равно отказал бы, но мок не должен уметь этого даже пытаться.
+ *
+ * Интерфейс помечает такие ответы значком MOCK — выдавать записанный
+ * ответ за живую модель нельзя.
  */
 
 const money = (n: number) => `${n.toLocaleString("ru-RU")} ₸`;
-
-function lastUserText(messages: Msg[]): string {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m.role === "user") return m.content.toLowerCase();
-  }
-  return "";
-}
-
-function lastToolMessage(messages: Msg[]): Extract<Msg, { role: "tool" }> | null {
-  const m = messages[messages.length - 1];
-  return m && m.role === "tool" ? m : null;
-}
 
 type AnyRec = Record<string, unknown>;
 
@@ -34,91 +27,20 @@ function parse(content: string): AnyRec {
   }
 }
 
-/** Последние товары, которые агент уже показывал — из них выбираем при «добавь в корзину». */
-function knownProducts(messages: Msg[]): Array<{ id: string; title: string; price: number }> {
+function lastUserText(messages: Msg[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m.role === "tool" && m.name === "search_catalog") {
-      const items = (parse(m.content).products as Array<AnyRec>) ?? [];
-      // Пустую выдачу пропускаем: товары, показанные раньше, всё ещё в силе.
-      if (items.length === 0) continue;
-      return items.map((p) => ({ id: String(p.id), title: String(p.title), price: Number(p.price) }));
-    }
+    if (messages[i].role === "user") return (messages[i] as { content: string }).content.toLowerCase();
   }
-  return [];
+  return "";
 }
 
-function knownOrderId(messages: Msg[]): string | null {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m.role === "tool" && m.name === "manage_order") {
-      const data = parse(m.content);
-      const order = (data.order as AnyRec) ?? null;
-      if (order?.id) return String(order.id);
-      const orders = (data.orders as Array<AnyRec>) ?? [];
-      if (orders[0]?.id) return String(orders[0].id);
-    }
-  }
-  return null;
+function lastToolMessage(messages: Msg[]): Extract<Msg, { role: "tool" }> | null {
+  const m = messages[messages.length - 1];
+  return m && m.role === "tool" ? m : null;
 }
 
-/** Фильтры прошлого поиска: «сравни с вариантом подешевле» должно остаться в той же категории. */
-function lastSearchFilters(messages: Msg[]): { category?: string; max_price?: number } {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m.role !== "assistant" || !m.tool_calls) continue;
-    const call = m.tool_calls.find((t) => t.name === "search_catalog");
-    if (!call) continue;
-    try {
-      const a = JSON.parse(call.arguments) as AnyRec;
-      return {
-        category: a.category ? String(a.category) : undefined,
-        max_price: typeof a.max_price === "number" ? a.max_price : undefined,
-      };
-    } catch {
-      return {};
-    }
-  }
-  return {};
-}
-
-function pickProduct(text: string, pool: Array<{ id: string; title: string }>): string | null {
-  if (pool.length === 0) return null;
-  const hit = pool.find((p) => text.includes(p.title.toLowerCase().split(" ")[0]));
-  if (hit) return hit.id;
-  if (/дешев|бюджет|подешевл/.test(text)) return pool[pool.length - 1].id;
-  return pool[0].id;
-}
-
-function priceCeiling(text: string): number | undefined {
-  const m = text.match(/(\d[\d\s]{2,})\s*(?:тг|тенге|₸)?/);
-  if (!m) return undefined;
-  const n = Number(m[1].replace(/\s/g, ""));
-  return Number.isFinite(n) && n > 1000 ? n : undefined;
-}
-
-function categoryOf(text: string): string | undefined {
-  if (/ноут|лэптоп|laptop/.test(text)) return "ноутбуки";
-  if (/наушник|headphone|ANC|анс/i.test(text)) return "наушники";
-  if (/смартфон|телефон|phone/.test(text)) return "смартфоны";
-  if (/монитор/.test(text)) return "мониторы";
-  if (/зарядк|чехол|мышь|хаб|аксессуар/.test(text)) return "аксессуары";
-  return undefined;
-}
-
-let seq = 0;
-const callId = () => `mock_${++seq}_${Date.now().toString(36)}`;
-
-function tool(name: string, args: AnyRec): ToolCall {
-  return { id: callId(), name, arguments: JSON.stringify(args) };
-}
-
-function turn(content: string | null, toolCalls: ToolCall[] = []): ModelTurn {
-  return { content, toolCalls, model: "mock-scripted", source: "mock" };
-}
-
-/** Инструменты, отработавшие уже внутри текущего хода (после последней реплики пользователя). */
-function currentTurnTools(messages: Msg[]): Array<{ name: string; data: AnyRec }> {
+/** Инструменты, уже отработавшие внутри текущего хода. */
+function turnTools(messages: Msg[]): Array<{ name: string; data: AnyRec }> {
   const out: Array<{ name: string; data: AnyRec }> = [];
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
@@ -128,126 +50,262 @@ function currentTurnTools(messages: Msg[]): Array<{ name: string; data: AnyRec }
   return out;
 }
 
-/** Сколько позиций в корзине по последнему известному ответу инструмента. */
-function cartCount(messages: Msg[]): number {
+/**
+ * Артикулы ekt выглядят по-разному: R9F12110, 404029х, 030300462_, УКЗ-001-412.
+ * Берём достаточно длинный токен, в котором есть хотя бы две цифры.
+ */
+function extractSku(text: string): string | null {
+  const raw = text.match(/[A-Za-zА-Яа-яЁё0-9][A-Za-zА-Яа-яЁё0-9._\-/]{4,}/g) ?? [];
+  for (const token of raw) {
+    const digits = (token.match(/\d/g) ?? []).length;
+    if (digits >= 2) return token.replace(/[.,;:]+$/, "");
+  }
+  return null;
+}
+
+/** Артикул из последних результатов инструментов — если в реплике его нет. */
+function skuFromHistory(messages: Msg[]): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
     if (m.role !== "tool") continue;
-    const cart = parse(m.content).cart as AnyRec | undefined;
-    if (cart && typeof cart.count === "number") return cart.count;
+    const d = parse(m.content);
+    const product = d.product as AnyRec | undefined;
+    if (product?.sku) return String(product.sku);
+    const proposal = d.proposalId ? d : null;
+    if (proposal?.sku) return String(proposal.sku);
+    const list = (d.products as AnyRec[]) ?? [];
+    if (list[0]?.sku) return String(list[0].sku);
   }
-  return 0;
+  return null;
 }
 
-function reasonOf(text: string): string {
-  if (/брак|слом|не работ|разбит/.test(text)) return "брак";
-  if (/не подош|размер|не то|тяжёл|тяжел/.test(text)) return "не подошёл";
-  return "передумал";
+function pendingProposalId(messages: Msg[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "tool" || m.name !== "propose_add") continue;
+    const d = parse(m.content);
+    if (d.proposalId) return String(d.proposalId);
+  }
+  return null;
 }
 
 /**
- * Один ход «модели» без сети.
+ * Количество из реплики.
  *
- * Это не просто «ответ на фразу»: мок смотрит, что уже сделано внутри
- * текущего хода, и умеет выстраивать цепочку из двух вызовов —
- * «возьми его и оформи» превращается в update_cart, а затем manage_order.
- * Без этого записанный режим не вытянул бы демо-сценарий целиком.
+ * Наивное `/(\d+)/` здесь ловит цифру ИЗ АРТИКУЛА: в «добавь R9F12110,
+ * 2 штуки» первое число — девятка внутри R9F12110. Поэтому число должно
+ * стоять отдельным словом, а не быть частью буквенно-цифрового токена.
  */
-export function mockTurn(messages: Msg[]): ModelTurn {
-  const text = lastUserText(messages);
-  const trail = currentTurnTools(messages);
-  const used = (name: string) => trail.some((t) => t.name === name);
-  const finish = () => {
-    const last = lastToolMessage(messages);
-    return turn(last ? renderToolResult(last, messages) : "Готово.");
-  };
+function qtyFrom(text: string): number {
+  // Только литералы: при сборке регулярки из шаблонной строки `\d`
+  // превращается в обычную «d», и это ломается молча.
+  const withUnit = /(?:^|[^A-Za-zА-Яа-яЁё0-9])(\d{1,3})\s*(?:шт|штук)/i;
+  const standalone = /(?:^|[^A-Za-zА-Яа-яЁё0-9])(\d{1,3})(?![A-Za-zА-Яа-яЁё0-9])/i;
 
-  // --- возврат: сначала узнать номер заказа, потом оформить ---
-  if (/верн|возврат|не подош|брак|refund/.test(text)) {
-    const done = trail.some((t) => (t.data.order as AnyRec)?.status === "return_requested");
-    if (done) return finish();
-
-    const orderId = knownOrderId(messages);
-    if (orderId) return turn(null, [tool("manage_order", { action: "return", order_id: orderId, reason: reasonOf(text) })]);
-    if (!used("manage_order")) return turn(null, [tool("manage_order", { action: "list" })]);
-    return finish();
-  }
-
-  // --- оформление: при необходимости сначала положить товар в корзину ---
-  if (/оформ|закаж|заказ|куп|checkout|беру|бери|оплат/.test(text)) {
-    if (used("manage_order")) return finish(); // place уже отработал — успешно или нет
-    if (cartCount(messages) === 0 && !used("update_cart") && /бери|беру|возьм|его|это|этот/.test(text)) {
-      const pid = pickProduct(text, knownProducts(messages));
-      if (pid) return turn(null, [tool("update_cart", { action: "add", product_id: pid, qty: 1 })]);
-    }
-    return turn(null, [tool("manage_order", { action: "place" })]);
-  }
-
-  if (/добав|в корзин|возьм|положи/.test(text)) {
-    if (used("update_cart")) return finish();
-    const pid = pickProduct(text, knownProducts(messages));
-    if (pid) return turn(null, [tool("update_cart", { action: "add", product_id: pid, qty: 1 })]);
-  }
-
-  if (/корзин|что у меня/.test(text)) {
-    if (used("update_cart")) return finish();
-    return turn(null, [tool("update_cart", { action: "view" })]);
-  }
-
-  // --- по умолчанию подбор ---
-  if (used("search_catalog")) return finish();
-  const prev = lastSearchFilters(messages);
-  return turn(null, [
-    tool("search_catalog", {
-      query: text.slice(0, 60) || "популярное",
-      category: categoryOf(text) ?? prev.category,
-      max_price: priceCeiling(text) ?? prev.max_price,
-      in_stock_only: true,
-      sort_by: /дешев|подешевл|бюджет/.test(text) ? "price_asc" : "rating",
-      limit: 3,
-    }),
-  ]);
+  const m = text.match(withUnit) ?? text.match(standalone);
+  const n = m ? Number(m[1]) : 1;
+  return Number.isFinite(n) && n > 0 && n < 100 ? n : 1;
 }
 
-function renderToolResult(toolMsg: Extract<Msg, { role: "tool" }>, messages: Msg[]): string {
-  const data = parse(toolMsg.content);
-  if (data.error) return `Не получилось: ${String(data.error)}. Уточните, пожалуйста, что делаем дальше.`;
+let seq = 0;
+const tool = (name: string, args: AnyRec): ToolCall => ({
+  id: `mock_${++seq}_${Date.now().toString(36)}`,
+  name,
+  arguments: JSON.stringify(args),
+});
 
-  if (toolMsg.name === "search_catalog") {
-    const items = (data.products as Array<AnyRec>) ?? [];
-    if (items.length === 0) return "По таким условиям ничего не нашлось. Давайте поднимем бюджет или расширим категорию?";
-    const lines = items.slice(0, 3).map((p, i) => {
-      const specs = (p.specs as AnyRec) ?? {};
-      const hint = specs.ram_gb ? `${specs.ram_gb} ГБ RAM, ${specs.ssd_gb ?? specs.storage_gb ?? "—"} ГБ` : (specs.battery_h ? `${specs.battery_h} ч автономности` : String(p.brand));
-      return `${i + 1}. ${String(p.title)} — ${money(Number(p.price))}, рейтинг ${p.rating}, ${hint}`;
-    });
-    return `Вот что подходит:\n\n${lines.join("\n")}\n\nПервый — лучший баланс цены и отзывов. Добавить его в корзину?`;
+const turn = (content: string | null, toolCalls: ToolCall[] = []): ModelTurn => ({
+  content,
+  toolCalls,
+  model: "mock-scripted",
+  source: "mock",
+});
+
+// --------------------------------------------------------------------------
+
+const AFFIRM = /^(да|ага|ок|окей|хорошо|давай|добавь|добавьте|подтверждаю|беру)\b|(^|\s)да[,.\s]|добавь/;
+const ASKS_ALTERNATIVE = /аналог|взамен|замен|посовет|чем замен|что вместо/;
+const ASKS_TERMS = /услови|оплат|доставк|партия|самовывоз|как платить|как получить/;
+const ASKS_CART = /корзин[ае]|что у меня/;
+const ASKS_LINK = /ссылк|оформ/;
+const WANTS_ADD = /добав|в корзину|куплю|бер[уё]|оформ|закаж/;
+
+export function mockTurn(messages: Msg[]): ModelTurn {
+  const text = lastUserText(messages);
+  const trail = turnTools(messages);
+  const used = (n: string) => trail.some((t) => t.name === n);
+  const finish = () => {
+    const last = lastToolMessage(messages);
+    return turn(last ? render(last, messages) : "Готово.");
+  };
+
+  // --- подтверждение: только если предложение сделано в прошлом ходу ---
+  if (AFFIRM.test(text) && !WANTS_ADD.test(text.replace(/добавь/g, ""))) {
+    const pid = pendingProposalId(messages);
+    const proposedNow = used("propose_add");
+    if (pid && !proposedNow) {
+      if (used("get_cart_link")) return finish();
+      const confirmed = trail.find((t) => t.name === "confirm_add");
+      if (!confirmed) return turn(null, [tool("confirm_add", { proposalId: pid })]);
+      // Подтвердили — сразу отдаём ссылку на корзину (пункт 15 промпта).
+      if (confirmed.data.cart) return turn(null, [tool("get_cart_link", {})]);
+      return finish();
+    }
   }
 
-  if (toolMsg.name === "update_cart") {
-    const cart = (data.cart as AnyRec) ?? {};
-    const lines = (cart.lines as Array<AnyRec>) ?? [];
-    if (lines.length === 0) return "Корзина пуста.";
-    const body = lines.map((l) => `• ${String(l.title)} ×${l.qty} — ${money(Number(l.line_total))}`).join("\n");
-    return `В корзине:\n${body}\n\nИтого ${money(Number(cart.total ?? 0))}. Оформляем заказ?`;
+  // --- намерение купить -> предложение, корзину не трогаем ---
+  if (WANTS_ADD.test(text)) {
+    if (used("propose_add")) return finish();
+    const sku = extractSku(text) ?? skuFromHistory(messages);
+    if (sku) return turn(null, [tool("propose_add", { sku, qty: qtyFrom(text) })]);
   }
 
-  if (toolMsg.name === "manage_order") {
-    const order = (data.order as AnyRec) ?? null;
-    const orders = (data.orders as Array<AnyRec>) ?? [];
-    if (order?.status === "return_requested") {
-      return `Возврат по заказу ${String(order.id)} оформлен, причина — «${String(order.return_reason)}». Деньги вернутся на карту в течение 3 рабочих дней, курьер заберёт товар завтра.`;
-    }
-    if (order?.status === "placed") {
-      return `Заказ ${String(order.id)} оформлен на ${money(Number(order.total))}. Доставка — ${order.eta_days} дн. Если что-то не подойдёт, возврат в течение 14 дней — скажите мне, я оформлю.`;
-    }
-    if (orders.length > 0) {
-      const body = orders.map((o) => `• ${String(o.id)} — ${String(o.status)}, ${money(Number(o.total))}`).join("\n");
-      return `Ваши заказы:\n${body}\n\nПо какому оформляем возврат?`;
-    }
-    return "Заказов пока нет.";
+  // --- условия покупки ---
+  if (ASKS_TERMS.test(text)) {
+    if (used("get_terms")) return finish();
+    // Спросили сразу о нескольких вещах («оплата и доставка») — отдаём всё.
+    const hits = [
+      /оплат|платить|счёт|счет/.test(text) && "payment",
+      /доставк|привез|привоз|срок/.test(text) && "delivery",
+      /партия|минималь|кратн/.test(text) && "min_order",
+      /самовывоз|забрать|склад/.test(text) && "pickup",
+    ].filter(Boolean) as string[];
+    const topic = hits.length === 1 ? hits[0] : "all";
+    return turn(null, [tool("get_terms", { topic })]);
   }
 
-  void messages;
-  return "Готово.";
+  // --- ссылка на корзину ---
+  if (ASKS_LINK.test(text) && !WANTS_ADD.test(text)) {
+    if (used("get_cart_link")) return finish();
+    return turn(null, [tool("get_cart_link", {})]);
+  }
+
+  if (ASKS_CART.test(text)) {
+    if (used("get_cart")) return finish();
+    return turn(null, [tool("get_cart", {})]);
+  }
+
+  // --- аналоги: сначала карточка, потом замена ---
+  const sku = extractSku(text) ?? skuFromHistory(messages);
+  if (ASKS_ALTERNATIVE.test(text) && sku) {
+    if (used("find_alternatives")) return finish();
+    if (!used("get_product")) return turn(null, [tool("get_product", { sku })]);
+    const card = trail.find((t) => t.name === "get_product");
+    const product = (card?.data.product ?? {}) as AnyRec;
+    if (Number(product.available ?? 0) > 0) return finish(); // есть в наличии — аналоги не нужны
+    return turn(null, [tool("find_alternatives", { sku })]);
+  }
+
+  // --- карточка товара ---
+  if (sku) {
+    if (used("get_product")) {
+      const card = trail.find((t) => t.name === "get_product");
+      const product = (card?.data.product ?? {}) as AnyRec;
+      // Нет в наличии — сам предлагаю замену, не дожидаясь вопроса.
+      if (Number(product.available ?? 0) === 0 && !used("find_alternatives")) {
+        return turn(null, [tool("find_alternatives", { sku: String(product.sku ?? sku) })]);
+      }
+      return finish();
+    }
+    return turn(null, [tool("get_product", { sku })]);
+  }
+
+  // --- свободный поиск ---
+  if (used("search_catalog")) return finish();
+  return turn(null, [tool("search_catalog", { query: text.slice(0, 120) || "автоматический выключатель" })]);
+}
+
+// --------------------------------------------------------------------------
+// Ответы пользователю
+// --------------------------------------------------------------------------
+
+function render(toolMsg: Extract<Msg, { role: "tool" }>, messages: Msg[]): string {
+  const d = parse(toolMsg.content);
+  if (d.error) return `Не получилось: ${String(d.error)} Уточните, пожалуйста, что делаем дальше.`;
+
+  switch (toolMsg.name) {
+    case "search_catalog": {
+      const items = (d.products as AnyRec[]) ?? [];
+      if (!items.length) return "По такому запросу ничего не нашлось. Уточните тип изделия или номинал, либо я передам вопрос менеджеру.";
+      const lines = items.slice(0, 5).map(
+        (p) => `• ${String(p.sku)} — ${String(p.name)}, ${money(Number(p.price))}, ${Number(p.available) > 0 ? `в наличии ${p.available} шт.` : "нет в наличии"}`,
+      );
+      return `Нашёл по вашему запросу:\n${lines.join("\n")}\n\nПо какой позиции рассказать подробнее?`;
+    }
+
+    case "get_product": {
+      const p = (d.product ?? {}) as AnyRec;
+      const specs = (p.specs ?? {}) as Record<string, string>;
+      const specLine = Object.entries(specs).slice(0, 4).map(([k, v]) => `${k}: ${v}`).join(", ");
+      const stock = (p.stock as AnyRec[]) ?? [];
+      const avail = Number(p.available ?? 0);
+
+      const head = avail > 0
+        ? `${String(p.name)} — в наличии ${avail} шт., ${money(Number(p.price))}.`
+        : `${String(p.name)} — сейчас нет в наличии. Цена ${money(Number(p.price))}.`;
+
+      const parts = [head];
+      if (specLine) parts.push(`Характеристики: ${specLine}.`);
+      if (stock.length) {
+        parts.push(`Склады: ${stock.slice(0, 4).map((s) => `${s["склад"]} — ${s["остаток"]}`).join(", ")}.`);
+      }
+      const cert = p.certificate as AnyRec | null;
+      if (cert) {
+        parts.push(`Сертификат: ${String(cert.title)}${cert.demo ? " (демонстрационные данные прототипа)" : ""}.`);
+      } else {
+        parts.push("Сертификата по этой позиции в базе нет.");
+      }
+      if (avail === 0) parts.push("Подобрать аналог?");
+      return parts.join(" ");
+    }
+
+    case "find_alternatives": {
+      const items = (d.alternatives as AnyRec[]) ?? [];
+      const base = (d.base ?? {}) as AnyRec;
+      if (!items.length) return `Замены для ${String(base.sku ?? "")} в каталоге не нашлось. Могу передать запрос менеджеру.`;
+      const lines = items.map(
+        (a) => `• ${String(a.sku)} — ${String(a.name)}, ${money(Number(a.price))}\n  почему: ${String(a.reason)}`,
+      );
+      return `Вместо ${String(base.sku ?? "этой позиции")} могу предложить:\n${lines.join("\n")}\n\nДобавить какую-то из них в корзину?`;
+    }
+
+    case "get_terms": {
+      const terms = (d.terms as AnyRec[]) ?? [];
+      if (!terms.length) return "Не нашёл условий по этому вопросу.";
+      return terms
+        .map((t) => {
+          const details = (t.details as string[]) ?? [];
+          return `${String(t.title)}: ${String(t.text)}${details.length ? `\n  ${details.slice(0, 4).join("\n  ")}` : ""}`;
+        })
+        .join("\n\n");
+    }
+
+    case "propose_add": {
+      const note = d.note ? ` ${String(d.note)}.` : "";
+      return `${String(d.name)} — ${d.qty} шт. по ${money(Number(d.price))}, итого ${money(Number(d.lineTotal))}.${note}\n\nДобавляю в корзину? Подтвердите.`;
+    }
+
+    case "confirm_add": {
+      const cart = (d.cart ?? {}) as AnyRec;
+      const added = (d.added ?? {}) as AnyRec;
+      const capped = d.capped
+        ? ` Добавил только ${added.qty} шт. — это весь доступный остаток (${d.availableQty} шт.).`
+        : "";
+      return `Добавил: ${String(added.name)} ×${added.qty}.${capped} В корзине ${cart.count} шт. на ${money(Number(cart.total))}.`;
+    }
+
+    case "get_cart": {
+      const cart = (d.cart ?? {}) as AnyRec;
+      const lines = (cart.lines as AnyRec[]) ?? [];
+      if (!lines.length) return "Корзина пока пуста.";
+      return `В корзине:\n${lines.map((l) => `• ${String(l.name)} ×${l.qty} — ${money(Number(l.lineTotal))}`).join("\n")}\n\nИтого ${money(Number(cart.total))}.`;
+    }
+
+    case "get_cart_link":
+      return `Вот ссылка на корзину: ${String(d.url)} — там ${d.itemsCount} шт. на ${money(Number(d.total))}. Оформить заказ можно на этой странице.`;
+
+    default:
+      void messages;
+      return "Готово.";
+  }
 }

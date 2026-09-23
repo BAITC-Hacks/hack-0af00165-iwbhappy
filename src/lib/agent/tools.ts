@@ -19,7 +19,18 @@ export type ToolContext = {
   turnStartedAt: string;
 };
 
-export type ToolResult = { ok: boolean; data: Record<string, unknown>; summary: string };
+export type ToolResult = {
+  ok: boolean;
+  /** Уходит в модель. */
+  data: Record<string, unknown>;
+  summary: string;
+  /**
+   * Уходит в браузер вместе с событием tool_result.
+   * Поле намеренно отдельное: всё, что инструмент показывает интерфейсу,
+   * перечисляется явно, а не утекает туда целиком вместе с data.
+   */
+  client?: Record<string, unknown>;
+};
 
 const money = (n: number) => `${n.toLocaleString("ru-RU")} ₸`;
 
@@ -246,6 +257,21 @@ async function runPropose(a: z.infer<typeof ProposeArgs>, ctx: ToolContext): Pro
       requires_confirmation: "корзина не изменена; нужен явный ответ клиента",
     },
     summary: `предложено: ${p.name} ×${a.qty} по ${money(p.price)} (ожидает подтверждения)`,
+    // Данные для карточки подтверждения. proposalId здесь безопасен:
+    // предложение привязано к сессии, одноразово, и сервер всё равно
+    // проверяет его сам при вызове /api/confirm.
+    client: {
+      kind: "proposal",
+      proposalId: proposal.id,
+      sku: p.sku,
+      name: p.name,
+      qty: Math.min(a.qty, p.available),
+      requestedQty: a.qty,
+      price: p.price,
+      lineTotal: p.price * Math.min(a.qty, p.available),
+      available: p.available,
+      minOrder: p.minOrder,
+    },
   };
 }
 
@@ -319,7 +345,8 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
     case "search_catalog": {
       const v = SearchArgs.safeParse(parsed);
       if (!v.success) return { kind: "invalid_args", message: describe(v.error.issues) };
-      const items = await searchCatalog(v.data.query, v.data.category);
+      // Ровно 5 — контракт раздела 5. Витрина ходит в БД отдельно.
+      const items = await searchCatalog(v.data.query, v.data.category, 5);
       return {
         kind: "ok",
         result: {

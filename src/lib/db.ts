@@ -12,7 +12,7 @@ export type Store = { id: number; name: string; qty: number };
 export type Certificate = { title: string; url: string; demo: boolean };
 
 export type Product = {
-  id: number;
+  id: number | null;
   sku: string;
   name: string;
   rawName?: string;
@@ -66,10 +66,15 @@ function db(): Client {
   return client;
 }
 
+const SCHEMA_VERSION = 3;
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS products (
-  id INTEGER PRIMARY KEY,
-  sku TEXT NOT NULL,
+  -- Ключ — артикул, а не id. Поле id в выгрузке может отсутствовать, и тогда
+  -- INTEGER PRIMARY KEY схлопывает весь каталог в одну строку: все товары
+  -- получают ключ 0 и затирают друг друга. Артикул уникален по построению.
+  sku TEXT PRIMARY KEY,
+  id INTEGER,
   name TEXT NOT NULL,
   raw_name TEXT,
   category TEXT NOT NULL,
@@ -86,7 +91,7 @@ CREATE TABLE IF NOT EXISTS products (
   certificate TEXT,
   description TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+CREATE INDEX IF NOT EXISTS idx_products_id ON products(id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 
 CREATE TABLE IF NOT EXISTS cart_items (
@@ -144,7 +149,7 @@ function normalize(row: unknown): Product | null {
   const cert = r.certificate as Record<string, unknown> | null | undefined;
 
   return {
-    id: Number(r.id ?? 0),
+    id: Number.isFinite(Number(r.id)) ? Number(r.id) : null,
     sku,
     name,
     rawName: typeof r.rawName === "string" ? r.rawName : undefined,
@@ -176,7 +181,20 @@ export function ensureDb(): Promise<void> {
   if (!ready) {
     ready = (async () => {
       const c = db();
+
+      // Схема за день хакатона меняется не раз, а файл базы переживает
+      // перезапуск. Без этой проверки приложение падает на INSERT в таблицу
+      // старой формы, и ошибка выглядит как поломка кода, а не как мусор в .data.
       await c.executeMultiple(SCHEMA);
+      const ver = await c.execute("PRAGMA user_version");
+      if (Number(ver.rows[0]?.user_version ?? 0) !== SCHEMA_VERSION) {
+        await c.executeMultiple(
+          "DROP TABLE IF EXISTS products; DROP TABLE IF EXISTS cart_items; DROP TABLE IF EXISTS proposals;",
+        );
+        await c.executeMultiple(SCHEMA);
+        await c.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+      }
+
       const n = await c.execute("SELECT COUNT(*) AS n FROM products");
       if (Number(n.rows[0]?.n ?? 0) !== catalog.length) {
         await c.execute("DELETE FROM products");
@@ -184,10 +202,10 @@ export function ensureDb(): Promise<void> {
           await c.batch(
             catalog.slice(i, i + 100).map((p) => ({
               sql: `INSERT OR REPLACE INTO products
-                    (id,sku,name,raw_name,category,category_title,brand,specs,price,stock,available,status,alternatives,min_order,url,certificate,description)
+                    (sku,id,name,raw_name,category,category_title,brand,specs,price,stock,available,status,alternatives,min_order,url,certificate,description)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
               args: [
-                p.id, p.sku, p.name, p.rawName ?? null, p.category, p.categoryTitle, p.brand,
+                p.sku, p.id ?? null, p.name, p.rawName ?? null, p.category, p.categoryTitle, p.brand,
                 JSON.stringify(p.specs), p.price, JSON.stringify(p.stock), p.available, p.status,
                 JSON.stringify(p.alternatives), p.minOrder, p.url,
                 p.certificate ? JSON.stringify(p.certificate) : null,
@@ -205,7 +223,7 @@ export function ensureDb(): Promise<void> {
 
 function toProduct(r: Record<string, unknown>): Product {
   return {
-    id: Number(r.id),
+    id: r.id === null || r.id === undefined ? null : Number(r.id),
     sku: String(r.sku),
     name: String(r.name),
     rawName: r.raw_name ? String(r.raw_name) : undefined,
@@ -266,9 +284,17 @@ async function query(sqlTail: string, tokens: string[], extra: unknown[], limit:
   return res.rows.map((r) => toProduct(r as unknown as Record<string, unknown>));
 }
 
-/** Поиск по каталогу. До 5 позиций (раздел 5). */
-export async function searchCatalog(q: string, category?: string): Promise<Product[]> {
+/**
+ * Поиск по каталогу.
+ *
+ * Лимит по умолчанию 5 — столько инструмент search_catalog отдаёт модели
+ * по разделу 5, и этот контракт не меняется. Параметр нужен витрине:
+ * сетке товаров на странице требуется два десятка карточек, и незачем
+ * ради этого заводить второй почти такой же запрос.
+ */
+export async function searchCatalog(q: string, category?: string, limit = 5): Promise<Product[]> {
   await ensureDb();
+  const take = Math.min(Math.max(1, Math.trunc(limit)), 48);
   const tokens = tokenize(q || "");
   const where: string[] = [];
   const extra: unknown[] = [];
@@ -276,12 +302,12 @@ export async function searchCatalog(q: string, category?: string): Promise<Produ
   if (tokens.length) where.push("score > 0");
 
   const tail = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  const hit = await query(tail, tokens, extra, 5);
+  const hit = await query(tail, tokens, extra, take);
   if (hit.length > 0 || tokens.length === 0) return hit;
 
   // Пустая выдача — снимаем текстовое условие, фильтры оставляем.
   const tail2 = category ? "WHERE LOWER(category) LIKE ?" : "";
-  return query(tail2, [], category ? [`%${category.toLowerCase()}%`] : [], 5);
+  return query(tail2, [], category ? [`%${category.toLowerCase()}%`] : [], take);
 }
 
 export async function getProduct(sku: string): Promise<Product | null> {
@@ -310,14 +336,26 @@ export function labelSpec(key: string): string {
  * Объяснение подбора аналога. Объяснимость рекомендаций — отдельное
  * требование кейса, поэтому reason собирается из фактов, а не из общих слов.
  */
-function explain(base: Product, alt: Product, fromPartner: boolean): string {
-  const parts: string[] = [];
-  if (fromPartner) parts.push("отмечен в каталоге как рекомендуемая замена");
-  else parts.push(`та же категория «${base.categoryTitle || base.category}»`);
+type Basis = "partner" | "category" | "type" | "brand" | "price";
 
-  const same = Object.keys(base.specs).filter(
-    (k) => alt.specs[k] && alt.specs[k] === base.specs[k],
-  );
+const BASIS_TEXT: Record<Basis, string> = {
+  partner: "отмечен в каталоге как рекомендуемая замена",
+  category: "тот же раздел каталога",
+  type: "тот же тип изделия",
+  brand: "тот же производитель",
+  price: "ближайшая по цене позиция в наличии",
+};
+
+/**
+ * Объяснение подбора. Объяснимость рекомендаций — отдельное требование
+ * кейса, поэтому reason собирается из фактов и честно называет основание:
+ * если аналог подобран просто по близкой цене, так и говорим, а не
+ * выдаём это за техническое соответствие.
+ */
+function explain(base: Product, alt: Product, basis: Basis): string {
+  const parts: string[] = [BASIS_TEXT[basis]];
+
+  const same = Object.keys(base.specs).filter((k) => alt.specs[k] && alt.specs[k] === base.specs[k]);
   if (same.length) {
     parts.push(`совпадают ${same.slice(0, 3).map((k) => `${labelSpec(k)} (${alt.specs[k]})`).join(", ")}`);
   }
@@ -333,9 +371,13 @@ function explain(base: Product, alt: Product, fromPartner: boolean): string {
 }
 
 /**
- * Аналоги. Сначала то, что партнёр сам пометил как рекомендуемое,
- * затем добор по категории — иначе на позиции, чьи RECOMMEND не попали
- * в срез каталога, приёмочный тест 2 провалится.
+ * Аналоги подбираются ступенями: сначала то, что партнёр сам пометил
+ * рекомендуемым, затем раздел, тип изделия, производитель и в последнюю
+ * очередь просто ближайшая по цене позиция в наличии.
+ *
+ * Ступени нужны не для красоты: второй приёмочный тест обязателен, а в
+ * срезе каталога легко попадается позиция, у которой в её разделе вообще
+ * нет ничего в наличии. Вернуть пустой список означает провалить проверку.
  */
 export async function findAlternatives(sku: string, limit = 3): Promise<{ base: Product | null; items: Alternative[] }> {
   await ensureDb();
@@ -345,27 +387,47 @@ export async function findAlternatives(sku: string, limit = 3): Promise<{ base: 
   const picked: Alternative[] = [];
   const seen = new Set<string>([base.sku]);
 
+  const add = (p: Product, basis: Basis) => {
+    if (picked.length >= limit || seen.has(p.sku) || p.available <= 0) return;
+    seen.add(p.sku);
+    picked.push({ ...p, reason: explain(base, p, basis) });
+  };
+
+  // Ступень 1 — рекомендации партнёра (в выгрузке это id товаров ekt).
   for (const ref of base.alternatives) {
     if (picked.length >= limit) break;
     const cand = await getProduct(ref);
-    if (!cand || seen.has(cand.sku) || cand.available <= 0) continue;
-    seen.add(cand.sku);
-    picked.push({ ...cand, reason: explain(base, cand, true) });
+    if (cand) add(cand, "partner");
   }
 
-  if (picked.length < limit) {
-    const res = await db().execute({
-      sql: `SELECT * FROM products
-            WHERE category = ? AND available > 0 AND sku <> ?
-            ORDER BY ABS(price - ?) ASC LIMIT ?`,
-      args: [base.category, base.sku, base.price, limit * 3],
-    });
+  const tiers: Array<{ basis: Basis; sql: string; args: unknown[] }> = [
+    {
+      basis: "category",
+      sql: "SELECT * FROM products WHERE category = ? AND available > 0 AND sku <> ? ORDER BY ABS(price - ?) LIMIT ?",
+      args: [base.category, base.sku, base.price],
+    },
+    {
+      basis: "type",
+      sql: "SELECT * FROM products WHERE category_title <> '' AND category_title = ? AND available > 0 AND sku <> ? ORDER BY ABS(price - ?) LIMIT ?",
+      args: [base.categoryTitle, base.sku, base.price],
+    },
+    {
+      basis: "brand",
+      sql: "SELECT * FROM products WHERE brand <> '' AND brand = ? AND available > 0 AND sku <> ? ORDER BY ABS(price - ?) LIMIT ?",
+      args: [base.brand, base.sku, base.price],
+    },
+    {
+      basis: "price",
+      sql: "SELECT * FROM products WHERE available > 0 AND sku <> ? AND price BETWEEN ? AND ? ORDER BY ABS(price - ?) LIMIT ?",
+      args: [base.sku, Math.floor(base.price * 0.5), Math.ceil(base.price * 1.5), base.price],
+    },
+  ];
+
+  for (const tier of tiers) {
+    if (picked.length >= limit) break;
+    const res = await db().execute({ sql: tier.sql, args: [...tier.args, limit * 3] as never });
     for (const row of res.rows) {
-      if (picked.length >= limit) break;
-      const cand = toProduct(row as unknown as Record<string, unknown>);
-      if (seen.has(cand.sku)) continue;
-      seen.add(cand.sku);
-      picked.push({ ...cand, reason: explain(base, cand, false) });
+      add(toProduct(row as unknown as Record<string, unknown>), tier.basis);
     }
   }
 
@@ -529,15 +591,21 @@ export async function consumeProposal(sessionId: string, proposalId: string): Pr
 export async function pickDemoSkus(): Promise<{ inStock: string; outOfStock: string }> {
   await ensureDb();
   const c = db();
+  // Характеристики обязательны: первый приёмочный тест требует показать
+  // технические характеристики, а они заполнены примерно у половины каталога.
   const a = await c.execute(
-    "SELECT sku FROM products WHERE available >= 3 AND certificate IS NOT NULL ORDER BY available DESC LIMIT 1",
+    `SELECT sku FROM products
+     WHERE available >= 3 AND certificate IS NOT NULL AND specs <> '{}'
+     ORDER BY LENGTH(specs) DESC LIMIT 1`,
   );
   const aFallback = a.rows.length
     ? a
     : await c.execute("SELECT sku FROM products WHERE available > 0 ORDER BY available DESC LIMIT 1");
 
   const b = await c.execute(
-    "SELECT sku FROM products WHERE available = 0 AND alternatives <> '[]' LIMIT 1",
+    `SELECT sku FROM products
+     WHERE available = 0 AND specs <> '{}'
+     ORDER BY LENGTH(specs) DESC LIMIT 1`,
   );
   const bFallback = b.rows.length
     ? b

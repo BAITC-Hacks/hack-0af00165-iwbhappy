@@ -8,7 +8,10 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "demo": "tsx scripts/demo.ts",
+    "seed": "tsx scripts/seed-from-api.ts",
+    "check": "tsx scripts/check-catalog.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
