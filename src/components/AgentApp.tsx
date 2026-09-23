@@ -478,7 +478,7 @@ export default function AgentApp() {
           {chatItems.map((item) => item.kind === "proposal" ? (
             <ConfirmCard key={item.id} proposal={item.proposal} onConfirm={confirmProposal} onDecline={() => dismissProposal(item.proposal.proposalId)} />
           ) : (
-            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">{item.content}</div></div>
+            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">{item.imageUrl && <img className="message-image" src={item.imageUrl} alt="Загруженное фото товара" />}{item.content}</div></div>
           ))}
           {busy && phase && <div className="thinking-line"><span /> Агент {phase}…</div>}
         </div>
@@ -490,9 +490,12 @@ export default function AgentApp() {
             </div>
           )}
           <form className="composer" onSubmit={(event) => { event.preventDefault(); void send(draft); }}>
-            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft); } }} placeholder="Например: найдите автоматический выключатель на 16 А" rows={2} disabled={busy || !sessionId} />
-            <button type="submit" disabled={busy || !draft.trim()} aria-label="Отправить сообщение">{busy ? "…" : "Отправить"}</button>
+            <input ref={fileInputRef} className="file-input" type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.png,.jpg,.jpeg,.webp" onChange={(event) => { const file = event.currentTarget.files?.[0]; if (file) void uploadFile(file); }} />
+            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(draft); } }} placeholder="Например: найдите автоматический выключатель на 16 А" rows={2} disabled={busy || uploading || !sessionId} />
+            <button className="attach-button" type="button" onClick={() => fileInputRef.current?.click()} disabled={busy || uploading || !sessionId} aria-label="Прикрепить файл">📎</button>
+            <button type="submit" disabled={busy || uploading || !draft.trim()} aria-label="Отправить сообщение">{busy ? "…" : "Отправить"}</button>
           </form>
+          {uploading && <div className="upload-progress" role="status"><span /> Загружаем и разбираем файл…</div>}
         </div>
       </section>
 

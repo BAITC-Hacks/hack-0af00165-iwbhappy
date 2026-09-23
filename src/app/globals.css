@@ -268,6 +268,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   overflow-wrap: anywhere;
 }
 .message-row.user .message-bubble { border-color: var(--blue); border-radius: 13px 13px 4px 13px; background: var(--blue); color: white; }
+.message-image { display: block; max-width: min(240px, 100%); max-height: 180px; margin: 0 0 8px auto; border-radius: 9px; object-fit: cover; }
 .message-row.error .message-bubble { border-color: #efb5bb; background: #fff0f1; color: var(--red); }
 .message-row.notice .message-bubble { border-color: #a9dec3; background: #effaf4; color: #14653f; }
 .thinking-line { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
@@ -290,6 +291,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 }
 .prompt-list button:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
 .composer { display: flex; align-items: stretch; gap: 8px; }
+.file-input { display: none; }
 .composer textarea {
   flex: 1;
   min-width: 0;
@@ -305,6 +307,11 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .composer textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(23, 105, 224, 0.1); }
 .composer button { padding: 0 13px; border: 0; border-radius: 10px; background: var(--blue); color: white; font-size: 12px; font-weight: 750; }
 .composer button:hover:not(:disabled) { background: var(--blue-dark); }
+.composer .attach-button { flex: 0 0 40px; padding: 0; border: 1px solid var(--line); background: #f8fafc; color: var(--ink); font-size: 18px; }
+.composer .attach-button:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.composer button:disabled { opacity: 0.55; cursor: not-allowed; }
+.upload-progress { display: flex; align-items: center; gap: 7px; margin-top: 7px; color: var(--muted); font-size: 11px; }
+.upload-progress span { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); animation: status-pulse 1s ease-in-out infinite; }
 
 .confirm-card {
   width: 94%;
@@ -315,8 +322,14 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   box-shadow: 0 9px 22px rgba(135, 90, 10, 0.08);
 }
 .confirm-kicker { margin-bottom: 7px; color: #98620c; font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
-.confirm-card > strong { display: block; font-size: 13px; line-height: 1.4; }
+.confirm-items { display: grid; gap: 8px; }
+.confirm-item { padding: 9px; border: 1px solid #f1dfbd; border-radius: 9px; background: white; }
+.confirm-item > strong { display: block; font-size: 12px; line-height: 1.4; }
 .confirm-sku { color: var(--muted); font-size: 10.5px; }
+.confirm-item-total { margin-top: 6px; color: var(--muted); font-size: 11px; }
+.confirm-item-total b { color: var(--ink); }
+.confirm-grand-total { display: flex; justify-content: space-between; margin: 10px 0; padding: 9px; border-top: 1px solid #efc879; font-size: 12px; }
+.confirm-grand-total b { font-size: 14px; }
 .stock-warning { margin-top: 10px; padding: 8px 9px; border-radius: 8px; background: #ffedc9; color: #76500f; font-size: 11px; line-height: 1.4; }
 .confirm-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 11px 0; }
 .confirm-facts div { display: flex; flex-direction: column; padding: 8px; border: 1px solid #f1dfbd; border-radius: 8px; background: white; }
