@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
     "mock-check": "tsx scripts/mock-check.ts",
+    "verify": "tsc --noEmit && npm run smoke && npm run demo && npm run mock-check",
     "deploy": "vercel --prod",
     "demo": "tsx scripts/demo.ts",
     "seed": "tsx scripts/seed-from-api.ts",
