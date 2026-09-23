@@ -110,6 +110,34 @@ npm run demo
 | Данные | `src/lib/db.ts` | схема, засев, поиск, аналоги, корзина, предложения |
 | Выгрузка каталога | `scripts/seed-from-api.ts` | однократный забор данных из API партнёра |
 
+## Соответствие ТЗ
+
+| Пункт ТЗ | Где реализовано | Чем проверяется |
+|---|---|---|
+| §7.1 Наличие, характеристики, сертификат | `get_product` в `src/lib/agent/tools.ts` | `npm run smoke`, раздел 1 |
+| §7.2 Аналог с обоснованием | `find_alternatives` в `src/lib/agent/tools.ts`, подбор и `reason` в `src/lib/db.ts` | smoke, раздел 2 |
+| §7.3 Условия покупки | `get_terms` в `src/lib/agent/tools.ts`, `data/terms.json` с источниками ekt.kz | smoke, раздел 3 |
+| §7.4 Корзина только после согласия, количество не больше остатка | `confirm_add` в `src/lib/agent/tools.ts`, `consumeProposal` в `src/lib/db.ts`, кнопка в `src/app/api/confirm/route.ts` | smoke, раздел 4: три проверки согласия, остаток, повтор |
+| §7.5 Ссылка на актуальную корзину | `get_cart_link` в `src/lib/agent/tools.ts`, токен для чтения в `src/lib/db.ts`, `src/app/cart/page.tsx` | smoke, раздел 5 |
+| §5 Excel, Word, PDF и фото | `src/lib/spec-parse.ts`, `src/lib/llm/vision.ts`, `src/app/api/upload/route.ts` | smoke, разделы 5г и 6; файлы `scripts/fixtures/` для ручной загрузки, PDF и фото требуют модели |
+| §8 Казахский язык | `detectLang` в `src/lib/agent/loop.ts`, матчер в `src/lib/agent/tools.ts`, `src/components/i18n.ts` | smoke, разделы 0 и 5а; `npm run mock-check`; с ключом: `npm run demo -- --live --kk` |
+| §8 Сопутствующие товары | `find_related` в `src/lib/agent/tools.ts`, RECOMMEND партнёра в `src/lib/db.ts`, подсказки в `src/components/AgentApp.tsx` | smoke, раздел 5б; вручную — подтвердить товар `027004` кнопкой |
+| §8 История диалога | localStorage в `src/components/AgentApp.tsx`, в пределах сессии | вручную: переписка → перезагрузка → история на месте |
+| §8 Эскалация на менеджера | `get_terms(contacts)` в `src/lib/agent/tools.ts`, правило 9б в `src/lib/agent/prompts.ts` | smoke, раздел 3; `npm run mock-check` |
+| §9 Защита корзины | `src/lib/agent/tools.ts`, `src/lib/db.ts`: токен ссылки, три проверки согласия, одноразовое предложение | smoke, разделы 4 и 5 |
+| §9 Приватность | `src/lib/redact.ts`: карты, CVV, IBAN; `src/lib/logger.ts`: маскирование контактов в журнале | smoke, раздел 5в |
+| §9 Объяснимость | поле `reason` у аналогов и сопутствующих в `src/lib/db.ts` | smoke, разделы 2 и 5б |
+| §9 Совместимость с сайтом | `public/embed.js`, `src/app/demo-site/page.tsx`, `src/app/try/page.tsx` | вручную: `/demo-site`, закладка с `/try` |
+| §9 Мобильная версия | медиазапросы в `src/app/globals.css` | вручную на телефоне, в том числе ширина 375px |
+
+У ekt.kz нет открытой интеграции авторизации: история хранится в браузере
+в пределах сессии (до 40 элементов ленты, без миниатюр фотографий).
+История для авторизованных клиентов — **план интеграции**, для которого
+нужна подписанная передача id пользователя с сервера Bitrix; сейчас она
+не реализована.
+
+## Инструменты и устойчивость
+
 ### Инструменты
 
 | Инструмент | Назначение |
