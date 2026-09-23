@@ -330,6 +330,13 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
   box-shadow: 0 9px 22px rgba(135, 90, 10, 0.08);
 }
 .confirm-card.processed { border-color: #d8dee7; background: #f8fafc; box-shadow: none; }
+.related-products { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); white-space: normal; text-align: left; }
+.related-products > p { margin: 0 0 8px; font-weight: 700; }
+.related-product + .related-product { margin-top: 10px; }
+.related-product button { width: 100%; padding: 8px 10px; border: 1px solid #b9cef0; border-radius: 8px; background: var(--blue-soft); color: var(--blue-dark); text-align: left; font: inherit; overflow-wrap: anywhere; }
+.related-product button:hover:not(:disabled) { border-color: var(--blue); }
+.related-product button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.related-product small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
 .confirm-kicker { margin-bottom: 7px; color: #98620c; font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
 .confirm-items { display: grid; gap: 8px; }
 .confirm-item { padding: 9px; border: 1px solid #f1dfbd; border-radius: 9px; background: white; }

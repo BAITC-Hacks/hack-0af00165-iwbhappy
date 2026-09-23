@@ -9,12 +9,15 @@ import ConfirmCard, { type ProposalLineView, type ProposalView } from "./Confirm
 import ProductGrid, { type ProductPreview } from "./ProductGrid";
 import { kazakhDemoPrompts, tr, type Lang } from "./i18n";
 
+type RelatedProduct = { sku: string; name: string; price: number; reason: string };
+
 type ChatMessage = {
   id: string;
   kind: "message";
   role: "user" | "assistant" | "error" | "notice";
   content: string;
   imageUrl?: string;
+  related?: RelatedProduct[];
 };
 
 type ProposalMessage = {
@@ -91,6 +94,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function readRelated(value: unknown): RelatedProduct[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is RelatedProduct => isRecord(item)
+    && typeof item.sku === "string" && !!item.sku
+    && typeof item.name === "string" && !!item.name
+    && typeof item.price === "number" && Number.isFinite(item.price) && item.price > 0
+    && typeof item.reason === "string").slice(0, 2).map(({ sku, name, price, reason }) => ({ sku, name, price, reason }));
+}
+
 function restoreProposal(value: unknown): ProposalView | null {
   if (!isRecord(value) || typeof value.proposalId !== "string" || !Array.isArray(value.items)) return null;
   const items: ProposalLineView[] = [];
@@ -120,6 +132,7 @@ function restoreChatItems(value: unknown): ChatItem[] {
       restored.push({
         id: candidate.id, kind: "message", role: candidate.role as ChatMessage["role"],
         content: candidate.content,
+        related: readRelated(candidate.related),
       });
       continue;
     }
@@ -459,6 +472,7 @@ export default function AgentApp() {
         addedTotal?: number;
         capped?: boolean;
         cartUrl?: string;
+        related?: RelatedProduct[];
       };
 
       if (data.cart) applyCart(data.cart);
@@ -481,6 +495,7 @@ export default function AgentApp() {
           id: makeMessageId("notice"),
           kind: "message",
           role: "notice",
+          related: readRelated(data.related),
           content: data.lines?.length
             ? `${tr(lang, "addedToCart")}:\n${data.lines.map((line) => `• ${line.name} (${line.sku}) — ${line.added} ${tr(lang, "units")}${line.capped ? ` — ${tr(lang, "allAvailableStock")}` : ""}`).join("\n")}\n${tr(lang, "addedTotal")}: ${data.addedTotal ?? 0} ${tr(lang, "units")}`
             : data.capped
@@ -651,7 +666,19 @@ export default function AgentApp() {
           {chatItems.map((item) => item.kind === "proposal" ? (
             <ConfirmCard key={item.id} proposal={item.proposal} status={item.status} onConfirm={confirmProposal} onDecline={() => setProposalStatus(item.proposal.proposalId, "declined")} lang={lang} />
           ) : (
-            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">{item.imageUrl && <img className="message-image" src={item.imageUrl} alt={tr(lang, "imageAlt")} />}{item.content}</div></div>
+            <div key={item.id} className={`message-row ${item.role}`}><div className="message-bubble">
+              {item.imageUrl && <img className="message-image" src={item.imageUrl} alt={tr(lang, "imageAlt")} />}{item.content}
+              {!!item.related?.length && <div className="related-products">
+                <p>{tr(lang, "relatedTitle")}</p>
+                {item.related.map((product) => <div className="related-product" key={product.sku}>
+                  <button type="button" disabled={busy || uploading || resetting || !sessionId}
+                    onClick={() => void send(tr(lang, "relatedPrompt").replace("{sku}", product.sku))}>
+                    {product.name} — {product.price.toLocaleString(lang === "kk" ? "kk-KZ" : "ru-RU")} ₸
+                  </button>
+                  <small>{product.reason}</small>
+                </div>)}
+              </div>}
+            </div></div>
           ))}
           {busy && phase && <div className="thinking-line"><span /> {tr(lang, phase as "thinking" | "searching" | "answering")}…</div>}
         </div>
